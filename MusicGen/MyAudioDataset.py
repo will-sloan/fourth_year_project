@@ -1,5 +1,7 @@
 from torch.utils.data import Dataset
 import os
+import torchaudio
+import torch
 
 # Code from: https://github.com/chavinlo/musicgen_trainer/blob/main/train.py
 # Create a class to hold your data set
@@ -41,11 +43,29 @@ class MyAudioDataset(Dataset):
     def __len__(self):
         return len(self.data_map)
 
-    def __getitem__(self, idx):
-        data = self.data_map[idx]
-        left_audio = data["left_target"]
-        right_audio = data["right_target"]
-        label = data.get("label", "")
-        original = data.get("original", "")
+    # def __getitem__(self, idx):
+    #     data = self.data_map[idx]
+    #     left_audio = data["left_target"]
+    #     right_audio = data["right_target"]
+    #     label = data.get("label", "")
+    #     original = data.get("original", "")
 
-        return left_audio, right_audio, label, original
+    #     return left_audio, right_audio, label, original   
+    
+   # def get_sample(self, idx):
+    def __getitem__(self, idx):
+        temp = self.data_map[idx]
+        wav1, sr = torchaudio.load(temp["left_target"])
+        wav2, sr = torchaudio.load(temp["right_target"])
+        orig, sr = torchaudio.load(temp["original"])
+        wav, sr = torch.cat((wav1, wav2), dim=0), sr
+        label = temp['label']
+
+        # Return a dict with target, original, label, sample rate
+        # return {
+        #     "target": wav,
+        #     "original": orig,
+        #     "label": label,
+        #     "sr": sr
+        # }
+        return wav, orig, label, sr

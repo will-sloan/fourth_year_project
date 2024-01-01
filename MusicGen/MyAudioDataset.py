@@ -59,6 +59,7 @@ class MyAudioDataset(Dataset):
         wav2, sr = torchaudio.load(temp["right_target"])
         orig, sr = torchaudio.load(temp["original"])
         wav, sr = torch.cat((wav1, wav2), dim=0), sr
+        orig = torch.cat((orig, orig), dim=0)
         label = temp['label']
 
         # Return a dict with target, original, label, sample rate

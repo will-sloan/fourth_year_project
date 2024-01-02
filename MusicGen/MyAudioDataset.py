@@ -42,6 +42,9 @@ class MyAudioDataset(Dataset):
 
     def __len__(self):
         return len(self.data_map)
+    
+    def get_data_dir(self):
+        return self.data_dir
 
     # def __getitem__(self, idx):
     #     data = self.data_map[idx]

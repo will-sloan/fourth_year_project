@@ -2,6 +2,8 @@ from torch.utils.data import Dataset
 import os
 import torchaudio
 import torch
+import numpy as np
+import librosa
 
 # Code from: https://github.com/chavinlo/musicgen_trainer/blob/main/train.py
 # Create a class to hold your data set
@@ -34,7 +36,7 @@ class MyAudioDataset(Dataset):
                             "left_target": os.path.join(data_dir, left_ear),
                             "right_target": os.path.join(data_dir, right_ear),
                             "label": label,
-                            "original": os.path.join(data_dir, orig),
+                            "original": os.path.join(data_dir, orig)
                         }
                     )
                 else:
@@ -73,3 +75,10 @@ class MyAudioDataset(Dataset):
         #     "sr": sr
         # }
         return wav, orig, label, sr
+    
+
+
+
+
+
+        

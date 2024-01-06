@@ -15,87 +15,60 @@ import torch
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+import torch.nn.functional as F
 
 
 
-class AudioCNN(nn.Module):
+
+class FullyConnectedNN(nn.Module):
     def __init__(self, dropout_rate=0.5):
-        super(AudioCNN, self).__init__()
-        # Encoder
-        self.encoder = nn.Sequential(
-            nn.Conv1d(8, 64, kernel_size=3, stride=1, padding=1),  # Increased neurons
-            nn.BatchNorm1d(64),
+        super(FullyConnectedNN, self).__init__()
+        self.fc1 = nn.Sequential(
+            nn.Linear(4000, 4000),
+            nn.BatchNorm1d(4000),
             nn.ReLU(),
-            nn.Conv1d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
-            nn.Conv1d(128, 256, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Conv1d(256, 512, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(512),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Conv1d(512, 1024, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(1024),
-            nn.ReLU(),
-            nn.Conv1d(1024, 2048, kernel_size=3, stride=1, padding=1),  # New layer
-            nn.BatchNorm1d(2048),
-            nn.ReLU(),
-            nn.Conv1d(2048, 4096, kernel_size=3, stride=1, padding=1),  # New layer
-            nn.BatchNorm1d(4096),
-            nn.ReLU(),
+            nn.Dropout(dropout_rate)
         )
-
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose1d(4096, 2048, kernel_size=3, stride=1, padding=1),  # New layer
-            nn.BatchNorm1d(2048),
+        self.fc2 = nn.Sequential(
+            nn.Linear(4000, 4000),
+            nn.BatchNorm1d(4000),
             nn.ReLU(),
-            nn.ConvTranspose1d(2048, 1024, kernel_size=3, stride=1, padding=1),  # New layer
-            nn.BatchNorm1d(1024),
-            nn.ReLU(),
-            nn.ConvTranspose1d(1024, 512, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(512),
-            nn.ReLU(),
-            nn.ConvTranspose1d(512, 256, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.ConvTranspose1d(256, 128, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.ConvTranspose1d(128, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
-            nn.ConvTranspose1d(64, 32, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(32),
-            nn.ReLU(),
-            nn.ConvTranspose1d(32, 8, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm1d(8),
-            nn.ReLU(),
+            nn.Dropout(dropout_rate)
         )
-
-        
+        self.fc3 = nn.Sequential(
+            nn.Linear(4000, 4000),
+            nn.BatchNorm1d(4000),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate)
+        )
+        self.fc4 = nn.Sequential(
+            nn.Linear(4000, 4000),
+            nn.BatchNorm1d(4000),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate)
+        )
+        self.fc5 = nn.Sequential(
+            nn.Linear(4000, 4000),
+            nn.BatchNorm1d(4000),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate)
+        )
+        self.fc6 = nn.Sequential(
+            nn.Linear(4000, 4000),
+            nn.BatchNorm1d(4000),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate)
+        )
+        self.fc7 = nn.Linear(4000, 4000)  # No activation, dropout or batch normalization on the last layer
 
     def forward(self, x):
-        # Encoder
-        #print(x.shape)
-        x = self.encoder(x)
-
-        # Flatten the output from the encoder
-        #x = x.view(x.size(0), -1)
-
-        # Bottleneck layer
-        #x = self.fc1(x)
-
-        # Decoder
-        #x = self.fc2(x)
-
-        # Reshape the output from the decoder fully connected layer
-        #x = x.view(x.size(0), 1024, -1)
-
-        x = self.decoder(x)
-
+        x = self.fc1(x)
+        x = self.fc2(x)
+        x = self.fc3(x)
+        x = self.fc4(x)
+        x = self.fc5(x)
+        x = self.fc6(x)
+        x = self.fc7(x)
         return x
     
 
@@ -106,17 +79,25 @@ class AudioCNN(nn.Module):
         scheduler = lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
         criterion = nn.MSELoss()
         #print("Starting training loop")
+        last_20_losses = []
 
         for epoch in range(epochs):
             #print("Epoch", epoch)
+            self.train() 
             for i, (_, targets, _, inputs, angle, sr) in enumerate(dataloader):
                 inputs, targets = inputs.cuda(), targets.cuda()
-
+                inputs = inputs.view(inputs.size(0), -1)
+                targets = targets.view(targets.size(0), -1)
                 optimizer.zero_grad()
                 outputs = self(inputs)
                 loss = criterion(outputs, targets)
                 loss.backward()
                 optimizer.step()
+            
+            last_20_losses.append(loss.item())
+            if len(last_20_losses) > 20:
+                last_20_losses.pop(0)
+            running_avg_loss = sum(last_20_losses) / len(last_20_losses)
 
              # Validation
             self.eval()  # Set the model to evaluation mode
@@ -124,6 +105,8 @@ class AudioCNN(nn.Module):
                 val_loss = 0
                 for i, (_, targets, _, inputs, angle, sr) in enumerate(val_loader):
                     inputs, targets = inputs.cuda(), targets.cuda()
+                    inputs = inputs.view(inputs.size(0), -1)
+                    targets = targets.view(targets.size(0), -1)
                     outputs = self(inputs)
                     val_loss += criterion(outputs, targets).item()
                 val_loss /= len(val_loader)  # Calculate average validation loss
@@ -131,7 +114,7 @@ class AudioCNN(nn.Module):
             scheduler.step()
             if optimizer.param_groups[0]['lr'] < 0.0001:
                 optimizer.param_groups[0]['lr'] = 0.0001
-            print(f'Epoch: {epoch}, Training Loss: {loss.item()}, Validation Loss: {val_loss}, LR: {scheduler.get_last_lr()[0]}')
+            print(f'Epoch: {epoch}, Training Loss: {loss.item()}, Validation Loss: {val_loss}, Running Avg: {running_avg_loss}, LR: {scheduler.get_last_lr()[0]}')
             
             # Save the model every 10 epoch
             if epoch % 25 == 0 and epoch != 0:
@@ -139,7 +122,7 @@ class AudioCNN(nn.Module):
                 # Take first 4 digits of loss
                 loss_str = str(loss.item())
                 loss_str = loss_str[:5]
-                torch.save(self.state_dict(), f'/workspace/extension/encoder_models/{name}_encoder_cnn_loss_{loss_str}_{epoch}.pt')
+                torch.save(self.state_dict(), f'/workspace/extension/nn_models/{name}_encoder_cnn_loss_{loss_str}_{epoch}.pt')
 
 def test_model(myTransformer, test_dataset):
     myTransformer.eval()
@@ -149,6 +132,8 @@ def test_model(myTransformer, test_dataset):
     with torch.no_grad():
         for i, (_, targets, _, inputs, angle, sr) in enumerate(test_loader):
             inputs, targets = inputs.cuda(), targets.cuda()
+            inputs = inputs.view(inputs.size(0), -1)
+            targets = targets.view(targets.size(0), -1)
             outputs = myTransformer(inputs)
             loss = criterion(outputs, targets)
             test_loss += loss.item()
@@ -201,7 +186,7 @@ train_dataset, val_dataset, test_dataset = random_split(audio_codes_dataset, [tr
 
 
 # Create transformer
-myTransformer = AudioCNN(dropout_rate=0.1).cuda()
+myTransformer = FullyConnectedNN().cuda()
 # Initialize weights
 def weights_init(m):
     if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):

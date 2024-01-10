@@ -12,10 +12,13 @@ unprocessed = True
 data_folder = '/workspace/extension/unet'
 if unprocessed:
     # Split data into x sec wav files
-    mono_wavs = os.path.join(data_folder, 'wavs/mono')
-    WavSplitter(mono_wavs)
+    
+    long_files_to_split = 'unchopped'
+    target_dir_for_split = 'wavs'
+    WavSplitter(os.path.join(data_folder, long_files_to_split), os.path.join(data_folder, target_dir_for_split))
 
     # Set the wav files to train on
+    mono_wavs = os.path.join(data_folder, 'wavs/mono')
     left_wavs = os.path.join(data_folder, 'wavs/left')
     right_wavs = os.path.join(data_folder, 'wavs/right')
 
@@ -41,7 +44,7 @@ val_size = len(sp) - train_size - test_size
 train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(sp, [train_size, val_size, test_size])
 
 # Load the model
-model = AutoEncoder()
+#model = AutoEncoder()
 
 # Train the model
 

@@ -33,4 +33,5 @@ class SpectroConverter():
             D = D[:, 0]
             #D = librosa.stft(y, n_fft=1102, window='hann', )
             # Save the spectrogram in output
+            # left_90_442.npy
             np.save(os.path.join(output_dir, file.replace('.wav', '')), D)

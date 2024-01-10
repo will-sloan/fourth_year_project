@@ -8,22 +8,19 @@ import torch
 
 class WavSplitter():
 
-    def __init__(self, input_dir, output_dir, angle):
-        self.directory = input_dir
+    def __init__(self, input_file, output_dir, split_length=5):
+        self.filename = input_file.split('/')[-1]
         self.output_dir = output_dir
+        '''
+        Splitting /workspace/extension/unet/unchopped/mono.wav into 5 second chunks
+        Outputting to /workspace/extension/unet/wavs/mono
+        '''
+        print(f'Splitting {self.filename} into {split_length} second chunks')
+        print(f'Outputting to {self.output_dir}')
         # Split the wav files into 5 second chunks
-        self.split_wav_files()
+        assert self.filename.endswith('.wav'), 'File must be a wav file'
 
-    def split_wav_files(self, split_length=5):
-        # Split the mono wav file
-        self.split_wav_file(os.path.join(self.directory, f'mono_{angle}.wav'), split_length)
-        # Split the left wav file
-        self.split_wav_file(os.path.join(self.directory, f'left_{angle}.wav'), split_length)
-        # Split the right wav file
-        self.split_wav_file(os.path.join(self.directory, f'right_{angle}.wav'), split_length)
-
-    def split_wav_file(self, wav_file, split_length):
-        w, s = torchaudio.load(wav_file)
+        w, s = torchaudio.load(input_file)
         chunk_length = split_length * s
         num_chunks = w.shape[1] // chunk_length
         for i in range(num_chunks):
@@ -41,7 +38,8 @@ class WavSplitter():
                 # stereo audio so we need to pad 2 channels
                 chunk = torch.cat((chunk, pad), dim=1)
 
-            # Save the chunk and a copy of the label file
-            new_file_name = f"{wav_file.replace('.wav', '')}_{self.angle}_{i}.wav"
+            # Save the chunk
+                
+            new_file_name = f"{self.filename.replace('.wav', '')}_{i}.wav"
             new_file_path = os.path.join(self.output_dir, new_file_name)
             torchaudio.save(new_file_path, chunk, s)

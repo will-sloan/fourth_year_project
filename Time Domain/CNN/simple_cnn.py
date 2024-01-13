@@ -9,6 +9,7 @@ from MyAudioDataset import MyAudioDataset
 from AudioCodesDataset import AudioCodesDataset
 from audiocraft.models import CompressionModel
 from audiocraft.models.encodec import InterleaveStereoCompressionModel
+#from audiocraft.models import InterleaveStereoCompressionModel
 
 import torch.nn as nn
 import torch
@@ -84,8 +85,8 @@ class AudioCNN(nn.Module):
         x = x.view(-1, 8, 500)
         #print(x.size())
         
-        
         return x
+
     def train_loop(self, dataset, batch_size, epochs, lr):
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         optimizer = optim.Adam(self.parameters(), lr=lr)
@@ -118,23 +119,23 @@ class AudioCNN(nn.Module):
                 loss_str = loss_str[:5]
                 torch.save(self.state_dict(), f'simple_cnn_epoch_{loss_str}_{epoch}.pt')
 
+if __name__ == "__main__":
+
+    # Compression model, shortens 10secs to 8,500
+    model = CompressionModel.get_pretrained('facebook/encodec_32khz')
+    comp_model = InterleaveStereoCompressionModel(model).cuda()
+    print("Compression model loaded")
+
+    #mydataset = MyAudioDataset('/workspace/small_model_data3', 'recording_01_')
+    audio_codes_dataset = AudioCodesDataset(comp_model)
+    audio_codes_dataset.load_data('/workspace/90_degree_compress_tensors_10sec.pkl')
+    #audio_codes_dataset.set_audio_dataset(mydataset)
+
+    print("Dataset loaded")
+
+    assert len(audio_codes_dataset) == 1710, "Dataset is not the right size"
 
 
-# Compression model, shortens 10secs to 8,500
-model = CompressionModel.get_pretrained('facebook/encodec_32khz')
-comp_model = InterleaveStereoCompressionModel(model).cuda()
-print("Compression model loaded")
-
-#mydataset = MyAudioDataset('/workspace/small_model_data3', 'recording_01_')
-audio_codes_dataset = AudioCodesDataset(comp_model)
-audio_codes_dataset.load_data('/workspace/90_degree_compress_tensors_10sec.pkl')
-#audio_codes_dataset.set_audio_dataset(mydataset)
-
-print("Dataset loaded")
-
-assert len(audio_codes_dataset) == 1710, "Dataset is not the right size"
-
-
-# Create transformer
-myTransformer = AudioCNN(dropout_rate=0.1).cuda()
-myTransformer.train()
+    # Create transformer
+    myTransformer = AudioCNN(dropout_rate=0.1).cuda()
+    myTransformer.train()

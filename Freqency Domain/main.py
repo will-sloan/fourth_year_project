@@ -4,20 +4,22 @@ import torch
 import os
 import torch.nn as nn
 import glob
+from torch.utils.tensorboard import SummaryWriter
 print("Imported")
 # Local imports
 from SpectroDataset import SpectroDataset
 from Autoencoder import AutoEncoder
 from SpectroConverter import SpectroConverter
 from WavSplitter import WavSplitter
+from SidedSpectroDataset import SidedSpectroDataset
 
-unsplit = True
-unprocessed = True
+unsplit = False
+unprocessed = False
 data_folder = '/workspace/extension/unet'
-long_mono = 'unchopped/mono.wav'
+long_mono = 'unchopped2/mono.wav'
 all_angles = [0, 15, 30, 45, 90, 105, 120, 135, 150, 165, 180]
-long_left = 'unchopped/left_'
-long_right = 'unchopped/right_'
+long_left = 'unchopped2/left_'
+long_right = 'unchopped2/right_'
 mono_target = 'wavs/mono'
 left_target = 'wavs/left'
 right_target = 'wavs/right'
@@ -51,13 +53,15 @@ if unsplit:
     WavSplitter(os.path.join(data_folder, long_mono), mono_wavs, split_length)
     for i in all_angles:
         # Create new filename for the i angle
-        long_left = long_left + str(i) + '.wav'
-        WavSplitter(os.path.join(data_folder, long_left), left_wavs, split_length)
+        temp = long_left + str(i) + '.wav'
+        print("Splitting " + temp)
+        WavSplitter(os.path.join(data_folder, temp), left_wavs, split_length)
     print('Left done')
     for i in all_angles:
         # Create new filename for the i angle
-        long_right = long_right + str(i) + '.wav'
-        WavSplitter(os.path.join(data_folder, long_right), right_wavs, split_length)
+        temp = long_right + str(i) + '.wav'
+        print("Splitting " + temp)
+        WavSplitter(os.path.join(data_folder, temp), right_wavs, split_length)
     print('Right done')
     
     
@@ -78,14 +82,17 @@ if unprocessed:
     SpectroConverter(wavs=right_wavs, output_dir=right_wavs_output_dir)
     print('Right done')
 
-print("All Done")
-exit()
-# load the dataset
-sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, right_wavs_output_dir, chunk_size=1000, max_chunks=1)
-sp.process()
 
-sp.save_data_map('/workspace/extension/fancy_tiny.pkl')
-print("Saved data map")
+# load the dataset
+#sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, right_wavs_output_dir, chunk_size=1000, max_chunks=1)
+print(mono_wavs_output_dir)
+print(left_wavs_output_dir)
+sp = SidedSpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=12)
+# Gets 1000 samples
+# sp.load_chunk()
+
+#sp.save_data_map('/workspace/extension/fancy_tiny.pkl')
+#print("Saved data map")
 
 
 # sp = SpectroDataset(None, None, None)
@@ -93,21 +100,26 @@ print("Saved data map")
 # print("Loaded data map")
 
 # exit()
-# print(sp[0][1])
-# print(sp[0][2])
-# print(sp[0][3])
+
 
 # # Divide the dataset into training, validation, and testing
-train_size = int(0.8 * len(sp))
-test_size = int(0.1 * len(sp))
-val_size = len(sp) - train_size - test_size
-train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(sp, [train_size, val_size, test_size])
+# train_size = int(0.8 * len(sp))
+# test_size = int(0.1 * len(sp))
+# val_size = len(sp) - train_size - test_size
+#train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(sp, [train_size, val_size, test_size])
 
 # Load the model
 # Real and imaginary parts
 num_channels = 2
 
 model = AutoEncoder(input_channels=num_channels, out_channels=num_channels).cuda()
+
+# chkp_path = '/workspace/extension/unet/model_checkpoints2/model_loopnum_0_1_batch_30.pt'
+
+# checkpoint = torch.load(chkp_path)
+
+# model.load_state_dict(checkpoint['model_state_dict'])
+
 
 def weights_init(m):
     if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
@@ -117,10 +129,14 @@ model.apply(weights_init)
 model.train()
 
 
-
 # Train the model
-model.train_loop(train_dataset, val_dataset, batch_size=32, epochs=100, lr=0.01)
-
+#model.train_loop(train_dataset, val_dataset, batch_size=32, epochs=100, lr=0.01)
+# Pass writer
+writer = SummaryWriter('runs/fresh_run')
+for i in range(10):
+    model.train_loop(sp, batch_size=8, epochs=4, lr=0.01, writer=writer,loop_num=i)
+# Close writer
+writer.close()
 exit()
 output = model(sp[0][0].cuda(), sp[0][1])
 # Convert back to denormal

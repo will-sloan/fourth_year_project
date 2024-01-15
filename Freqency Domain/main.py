@@ -134,7 +134,7 @@ model.train()
 # Pass writer
 writer = SummaryWriter('runs/fresh_run')
 for i in range(10):
-    model.train_loop(sp, batch_size=8, epochs=4, lr=0.01, writer=writer,loop_num=i)
+    model.train_loop(sp, batch_size=8, epochs=4, writer=writer,loop_num=i)
 # Close writer
 writer.close()
 exit()

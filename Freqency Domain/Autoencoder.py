@@ -67,13 +67,14 @@ class AutoEncoder(nn.Module):
         # x = self.encoder[5](x)
         # print(x.shape)
         # Normalize the angle to be between 0 and 1
-        angle_tensor = angle / 180.0
+        angle_tensor = angle.float() / 180.0
 
         # Add an extra dimension to the angle tensor to match the shape of the encoder output
         angle_tensor = angle_tensor.unsqueeze(1).unsqueeze(2).unsqueeze(3)
 
         # Expand the angle tensor to match the shape of the encoder output
         angle_tensor = angle_tensor.expand(-1, -1, x.shape[2], x.shape[3])
+        angle_tensor = angle_tensor.cuda()
 
         # Concatenate the angle tensor with the encoder output
         x = torch.cat([x, angle_tensor], dim=1)

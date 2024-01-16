@@ -130,8 +130,8 @@ class AutoEncoder(nn.Module):
         train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(sp, [train_size, val_size, test_size])
         print(train_size, val_size, test_size)
         dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=6)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=6)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=6)
         model_name = ''
         for epoch in range(1, epochs + 1):
             # load a fresh 1000 samples from each epoch
@@ -159,7 +159,10 @@ class AutoEncoder(nn.Module):
                 loss = real_loss + imag_loss
                 train_loss += loss.item()
                 loss = loss / accumulation_steps  # Normalize the loss because it's accumulated over multiple batches
-                loss.backward()  # Backpropagate the loss
+                # loss.backward()  # Backpropagate the loss
+                # Backward pass for real and imaginary losses separately
+                real_loss.backward(retain_graph=True)  # Calculate the gradients for the real loss
+                imag_loss.backward()  # Calculate the gradients for the imaginary loss
 
                 if (i+1) % accumulation_steps == 0:  # Only update the weights once every accumulation_steps batches
                     torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm)

@@ -87,7 +87,7 @@ if unprocessed:
 #sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, right_wavs_output_dir, chunk_size=1000, max_chunks=1)
 print(mono_wavs_output_dir)
 print(left_wavs_output_dir)
-sp = SidedSpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=12)
+sp = SidedSpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=160)
 # Gets 1000 samples
 # sp.load_chunk()
 

@@ -87,7 +87,7 @@ if unprocessed:
 #sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, right_wavs_output_dir, chunk_size=1000, max_chunks=1)
 print(mono_wavs_output_dir)
 print(left_wavs_output_dir)
-sp = SidedSpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=160)
+sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=160)
 # Gets 1000 samples
 # sp.load_chunk()
 
@@ -132,9 +132,9 @@ model.train()
 # Train the model
 #model.train_loop(train_dataset, val_dataset, batch_size=32, epochs=100, lr=0.01)
 # Pass writer
-writer = SummaryWriter('runs/fresh_run')
+writer = SummaryWriter('runs/mixed_run')
 for i in range(10):
-    model.train_loop(sp, batch_size=8, epochs=4, writer=writer,loop_num=i)
+    model.train_loop(sp, batch_size=8, epochs=2, writer=writer,loop_num=i, name='right')
 # Close writer
 writer.close()
 exit()

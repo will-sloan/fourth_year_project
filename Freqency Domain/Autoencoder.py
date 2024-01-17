@@ -32,10 +32,10 @@ class AutoEncoder(nn.Module):
 
         #self.angle_to_index = {0.0: 0, 15.0: 1, 30.0: 2, 45.0: 3, 60.0: 4, 75.0: 5, 90.0: 7, 105.0: 8, 120.0: 9, 135.0: 10, 150.0: 11, 165.0: 12, 180.0: 13}
         # Add one channel for the angle
-        self.bottleneck = conv_block(512 + 1, 768) # 256 + 512 = 768
+        # self.bottleneck = conv_block(512 + 1, 768) # 256 + 512 = 768
 
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(768, 512, kernel_size=2, stride=2), 
+            nn.ConvTranspose2d(512 + 1, 512, kernel_size=2, stride=2), 
             conv_block(512, 512, use_dropout=True),
             nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2), 
             conv_block(256, 256, use_dropout=True),
@@ -51,57 +51,13 @@ class AutoEncoder(nn.Module):
     def forward(self, x, angle):
         # Pass input through the encoder
         x = self.encoder(x)
-        # break down encoder 
-        # print('forward')
-        # print(x.shape)
-        # x = self.encoder[0](x)
-        # print(x.shape)
-        # x = self.encoder[1](x)
-        # print(x.shape)
-        # x = self.encoder[2](x)
-        # print(x.shape)
-        # x = self.encoder[3](x)
-        # print(x.shape)
-        # x = self.encoder[4](x)
-        # print(x.shape)
-        # x = self.encoder[5](x)
-        # print(x.shape)
-        # Normalize the angle to be between 0 and 1
         angle_tensor = angle.float() / 180.0
-
-        # Add an extra dimension to the angle tensor to match the shape of the encoder output
         angle_tensor = angle_tensor.unsqueeze(1).unsqueeze(2).unsqueeze(3)
-
-        # Expand the angle tensor to match the shape of the encoder output
         angle_tensor = angle_tensor.expand(-1, -1, x.shape[2], x.shape[3])
         angle_tensor = angle_tensor.cuda()
-
-        # Concatenate the angle tensor with the encoder output
         x = torch.cat([x, angle_tensor], dim=1)
-        # print('before bt')
-        # print(x.shape)
-        # Pass the result through the bottleneck
-        x = self.bottleneck(x)
-        # print('after bt')
-        # Pass the result through the decoder
+        # x = self.bottleneck(x)
         x = self.decoder(x)
-        # break down decoder
-        # x = self.decoder[0](x)
-        # print(x.shape)
-        # x = self.decoder[1](x)
-        # print(x.shape)
-        # x = self.decoder[2](x)
-        # print(x.shape)
-        # x = self.decoder[3](x)
-        # print(x.shape)
-        # x = self.decoder[4](x)
-        # print(x.shape)
-        # x = self.decoder[5](x)
-        # print(x.shape)
-        # x = self.decoder[6](x)
-        # print(x.shape)
-        # print('before final')
-        # Pass the result through the final convolution
         x = self.final_conv(x)
 
         # Return to original shape
@@ -110,7 +66,7 @@ class AutoEncoder(nn.Module):
         return x
 
 
-    def train_loop(self, sp, batch_size, epochs, writer=None, loop_num=0):
+    def train_loop(self, sp, batch_size, epochs, writer=None, loop_num=0, name='left'):
         #dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         #val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
         #optimizer = optim.Adam(self.parameters(), lr=lr)
@@ -118,6 +74,9 @@ class AutoEncoder(nn.Module):
         
         scheduler = lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.5)
         criterion = nn.MSELoss()
+        # criterion = nn.L1Loss()
+        # criterion = nn.SmoothL1Loss()
+        # criterion = nn.CosineEmbeddingLoss()
         #print("Starting training loop")
         max_norm = 1.0
         sp.load_chunk()
@@ -172,13 +131,13 @@ class AutoEncoder(nn.Module):
                 print(f"\tbatch {i}: {loss.item()}")
                 if writer is not None:
                     writer.add_scalar('training loss', loss, epoch * len(dataloader) + i)
-                if i % 10 == 0: 
+                if i % 3 == 0: 
                    torch.save({
                         'epoch': epoch,
                         'model_state_dict': self.state_dict(),
                         'optimizer_state_dict': self.optimizer.state_dict(),
                         # Include any other states you want to save
-                    }, f'/workspace/extension/unet/model_checkpoints3/model_loopnum_{loop_num}_{epoch}_batch_{i}.pt')
+                    }, f'/workspace/extension/unet/model_checkpoints4/model_{name}_loopnum_{loop_num}_{epoch}_batch_{i}.pt')
                 #exit()
             print("Done train")
             # Validation
@@ -214,15 +173,15 @@ class AutoEncoder(nn.Module):
             print(f'Epoch: {epoch}, Training Loss: {train_loss}, Validation Loss: {val_loss}, LR: {scheduler.get_last_lr()[0]}')
 
             # After every 2 epochs, save the model checkpoint
-            model_name = f'/workspace/extension/unet/model_checkpoints3/model_loopnum_{loop_num}_{epoch}_afterval.pt'
-            if epoch % 10 == 0:
-                print("Saved model")
-                torch.save({
-                        'epoch': epoch,
-                        'model_state_dict': self.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),
-                        # Include any other states you want to save
-                    }, model_name)
+            model_name = f'/workspace/extension/unet/model_checkpoints4/model_{name}_loopnum_{loop_num}_{epoch}_afterval.pt'
+            # if epoch % 10 == 0:
+                # print("Saved model")
+            torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': self.state_dict(),
+                    'optimizer_state_dict': self.optimizer.state_dict(),
+                    # Include any other states you want to save
+                }, model_name)
 
         #print("start test")
         # # # Test the model

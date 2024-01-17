@@ -1,3 +1,6 @@
+# Choose which side of data to load
+
+
 # Uses the MyAudioDataset to precompute the compressed audio for all the samples
 # Hopefulyl speeding up the training process
 
@@ -12,79 +15,64 @@ import random
 
 class SpectroDataset(Dataset):
 
-    def __init__(self, mono_dir, left_dir, right_dir, chunk_size=1000, max_chunks=100000):
+    def __init__(self, mono_dir, spec_dir, chunk_size=1000):
         self.mono_dir = mono_dir
-        self.left_dir = left_dir
-        self.right_dir = right_dir
+        self.spec_dir = spec_dir
         self.data_map = []
-        self.min_value = np.inf
-        self.max_value = -np.inf
-        self.mean_value = 0
-        self.std_value = 0
-        self.total_samples = 0
 
         self.chunk_size = chunk_size
-        self.file_list = os.listdir(self.left_dir)
+        self.file_list = os.listdir(self.spec_dir)
         random.shuffle(self.file_list) 
         self.current_index = 0
-        self.num_chunks = 0
-        self.max_chunks = max_chunks
 
     def load_next_chunk(self):
         chunk_data = []
-        print("Loading chunk")
+
         for i in range(self.current_index, min(self.current_index + self.chunk_size, len(self.file_list))):
             # left_angle_1.npy
             f = self.file_list[i]
             index = f.split('_')[-1].replace('.npy', '')
+
+            # There are 3419 mono files, so check to make sure the index is valid
+            if int(index) > 3419:
+                continue
+
             angle = f.split('_')[1]
             # Create file names for right and mono
             mono = f'mono_{index}.npy'
-            right = f'right_{angle}_{index}.npy'
-            #print(baseline, index_of_target, os.path.join(data_dir, orig))
+            right_dir = self.spec_dir.replace('left', 'right')
             # Load spectrograms
-            left_spec = np.load(os.path.join(self.left_dir, f))
-            right_spec = np.load(os.path.join(self.right_dir, right))
-            mono_spec = np.load(os.path.join(self.mono_dir, mono))
-            left_spec = left_spec[:-1, :-1]
-            right_spec = right_spec[:-1, :-1]
-            mono_spec = mono_spec[:-1, :-1]
-            # Compute magnitude of complex numbers
-            left_mag = np.abs(left_spec)
-            right_mag = np.abs(right_spec)
-            mono_mag = np.abs(mono_spec)
-            # Update min, max, mean, std
-            self.min_value = min(self.min_value, left_mag.min(), right_mag.min(), mono_mag.min())
-            self.max_value = max(self.max_value, left_mag.max(), right_mag.max(), mono_mag.max())
-            self.mean_value += left_mag.sum() + right_mag.sum() + mono_mag.sum()
-            self.total_samples += left_mag.size + right_mag.size + mono_mag.size
+            ds = os.path.join(self.spec_dir, f)
+            mono_ds = os.path.join(self.mono_dir, mono)
+            right_ds = os.path.join(right_dir, f)
+            # print(ds)
+            # print(mono_ds)
+            spec = torch.from_numpy(np.load(ds))
+            right_spec = torch.from_numpy(np.load(right_ds))
+            
+            diffspec = spec - right_spec
+            mixedspec = spec + right_spec
 
-            left_spec = torch.view_as_real(torch.from_numpy(left_spec))
-            right_spec = torch.view_as_real(torch.from_numpy(right_spec))
-            mono_spec = torch.view_as_real(torch.from_numpy(mono_spec))
-            left_spec = left_spec.permute(2, 0, 1)
-            right_spec = right_spec.permute(2, 0, 1)
-            mono_spec = mono_spec.permute(2, 0, 1)
+            mono_spec = torch.from_numpy(np.load(mono_ds))
             label = float(angle)
             # Add to data_map
             chunk_data.append(
                 {
-                    # "target_spec": right_target,
-                    "orig": mono_spec,
                     "mono": mono_spec,
                     "label": label,
-                    "right": right_spec,
-                    "left": left_spec,
-
+                    "mixed": mixedspec,
+                    "diff": diffspec
                 }
             )
         self.current_index += self.chunk_size
-        self.num_chunks += 1
         return chunk_data
     
     # Get one chunk instead of all the chunks
     def load_chunk(self):
-        assert self.current_index >= len(self.file_list), "No more chunks to load"
+        #print(self.current_index, len(self.file_list))
+        if self.current_index >= len(self.file_list):
+            print("No more new chunks to load, resetting index")
+            self.current_index = 0
         self.data_map = self.load_next_chunk()
         print("Done loading chunk")
     
@@ -96,17 +84,17 @@ class SpectroDataset(Dataset):
         print("Done loading all data")
     
     def normalize(self):
+        # Only normalizes the current stores chunk
+
         self.mean_value /= self.total_samples
         for data in self.data_map:
-            self.std_value += ((np.abs(data['left']) - self.mean_value) ** 2).sum()
-            self.std_value += ((np.abs(data['right']) - self.mean_value) ** 2).sum()
+            self.std_value += ((np.abs(data['target']) - self.mean_value) ** 2).sum()
             self.std_value += ((np.abs(data['mono']) - self.mean_value) ** 2).sum()
         self.std_value = np.sqrt(self.std_value / self.total_samples)
 
         # Normalize data
         for data in self.data_map:
-            data['left'] = (np.abs(data['left']) - self.mean_value) / self.std_value
-            data['right'] = (np.abs(data['right']) - self.mean_value) / self.std_value
+            data['target'] = (np.abs(data['target']) - self.mean_value) / self.std_value
             data['mono'] = (np.abs(data['mono']) - self.mean_value) / self.std_value
         print("Done normalizing data")
 
@@ -115,7 +103,7 @@ class SpectroDataset(Dataset):
     
     def __getitem__(self, index):
         temp = self.data_map[index]
-        return temp["mono"], temp["label"], temp["right"], temp["left"],temp["orig"]
+        return temp["mono"], temp["label"], temp["target"]
     
     def save_data_map(self, path):
         # Add all instance variables to a dictionary
@@ -132,8 +120,7 @@ class SpectroDataset(Dataset):
             "num_chunks": self.num_chunks,
             "max_chunks": self.max_chunks,
             "mono_dir": self.mono_dir,
-            "left_dir": self.left_dir,
-            "right_dir": self.right_dir
+            "spec_dir": self.spec_dir,
         }
         with open(path, 'wb') as f:
             pickle.dump(temp, f)
@@ -156,7 +143,6 @@ class SpectroDataset(Dataset):
         self.num_chunks = temp["num_chunks"]
         self.max_chunks = temp["max_chunks"]
         self.mono_dir = temp["mono_dir"]
-        self.left_dir = temp["left_dir"]
-        self.right_dir = temp["right_dir"]
+        self.spec_dir = temp["spec_dir"]
 
     

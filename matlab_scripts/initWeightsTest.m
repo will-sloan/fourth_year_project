@@ -1,19 +1,57 @@
 
-
+%{
 miniBatchSize = 64;
-inputSize = [199 320];
+inputSize = [128 512];
 numChannels = 1;
 X = rand(inputSize(1),inputSize(2),numChannels,miniBatchSize);
 X = dlarray(X,"SSCB");
 
+% [128, 512, 1, 64]
 
-filterSize = [10 9];
+filterSize = [6 12];
 numFilters = 64;
 weights = rand(filterSize(1),filterSize(2),numChannels,numFilters);
 bias = zeros(1,numFilters);
 
-Y = dlconv(X, weights, bias, Stride=[3, 5], Padding=[1, 2]);
+Y = dlconv(X, weights, bias, Stride=[2, 8], Padding=[2, 2]);
 size(Y)
+%}
+
+%{
+Yp = rand(64,64,1,numFilters);
+
+
+filterSizeT = [6 12];
+numFiltersT = 64;
+weightsT = rand(filterSizeT(1),filterSizeT(2),numFiltersT, numChannels);
+biasT = zeros(1,numFiltersT);
+
+Z = dltranspconv(Yp, weightsT, biasT);
+
+sizeT = size(Z)
+%}
+
+
+miniBatchSize = 128;
+inputSize = [20 20];
+numChannels = 3;
+X = rand(inputSize(1),inputSize(2),numChannels,miniBatchSize);
+X = dlarray(X,"SSCB");
+
+
+filterSize = [3, 3];
+numFilters = 64;
+
+weights = rand(filterSize(1),filterSize(2),numFilters,numChannels);
+bias = zeros(1,numFilters);
+
+
+Y = dltranspconv(X,weights,bias, Stride=4, Cropping=2);
+
+size(Y)
+
+
+
 
 
 function w = iGlorotInitialize(sz)

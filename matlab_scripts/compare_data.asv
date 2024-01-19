@@ -61,14 +61,11 @@ fft_length = sample_rate/freq_step;
 window_length = time_precision/time_delta;
 
 total_time = 1;
-target_time_points = 128;
-
-overlap_portion = ((total_time*freq_step)-1)/(target_time_points-1);
-overlap_length = ceil( window_length * (1 - overlap_portion) );
+overlap_length = ceil((total_time - 1/freq_step))
 
 [my_stft, freqs] = stft(data, seconds(time_delta), ...
 FFTLength=fft_length, Window=hann(window_length,"periodic"), ...
-OverlapLength=overlap_length, FrequencyRange="centered");
+OverlapLength=int32(265), FrequencyRange="centered");
 
 stft_size = size(my_stft)
 

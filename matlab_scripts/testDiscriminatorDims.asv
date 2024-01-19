@@ -1,57 +1,21 @@
 
-%{
+% Current expectation: (128, 128) image
+
 miniBatchSize = 64;
-inputSize = [128 512];
+inputSize = [128 128];
 numChannels = 1;
 X = rand(inputSize(1),inputSize(2),numChannels,miniBatchSize);
 X = dlarray(X,"SSCB");
 
 % [128, 512, 1, 64]
 
-filterSize = [6 12];
-numFilters = 64;
-weights = rand(filterSize(1),filterSize(2),numChannels,numFilters);
-bias = zeros(1,numFilters);
+discParams = initializeDiscriminatorWeights;
 
-Y = dlconv(X, weights, bias, Stride=[2, 8], Padding=[2, 2]);
+weights = discParams.Conv1.Weights;
+bias = discParams.Conv1.Bias;
+
+Y = modelDiscriminator(X, discParams)
 size(Y)
-%}
-
-%{
-Yp = rand(64,64,1,numFilters);
-
-
-filterSizeT = [6 12];
-numFiltersT = 64;
-weightsT = rand(filterSizeT(1),filterSizeT(2),numFiltersT, numChannels);
-biasT = zeros(1,numFiltersT);
-
-Z = dltranspconv(Yp, weightsT, biasT);
-
-sizeT = size(Z)
-%}
-
-
-miniBatchSize = 128;
-inputSize = [10 10];
-numChannels = 3;
-X = rand(inputSize(1),inputSize(2),numChannels,miniBatchSize);
-X = dlarray(X,"SSCB");
-
-
-filterSize = [2, 2];
-numFilters = 64;
-
-weights = rand(filterSize(1),filterSize(2),numFilters,numChannels);
-bias = zeros(1,numFilters);
-
-
-Y = dltranspconv(X,weights,bias, Stride=3);
-
-size(Y)
-
-
-
 
 
 function w = iGlorotInitialize(sz)
@@ -64,6 +28,51 @@ else % Convolutional Layers
 end
 multiplier = sqrt(2 / (numInputs + numOutputs));
 w = multiplier * sqrt(3) * (2 * rand(sz,"single") - 1);
+end
+
+
+
+% ================ Discriminator Code ================
+% Discriminator Architecture
+function dlYDisc = modelDiscriminator(dlX,parameters)
+
+    size_dlX_init = size(dlX)
+
+    % dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=2,Padding="same");
+    dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=[2, 8], Padding=[2, 2]);
+    dlYDisc = leakyrelu(dlYDisc,0.2);
+    
+    size_dlYDisc_1 = size(dlYDisc)
+
+    dlYDisc = dlconv(dlYDisc,parameters.Conv2.Weights,parameters.Conv2.Bias,Stride=2,Padding="same");
+    dlYDisc = leakyrelu(dlYDisc,0.2);
+    
+    size_dlYDisc_2 = size(dlYDisc)
+
+    dlYDisc = dlconv(dlYDisc,parameters.Conv3.Weights,parameters.Conv3.Bias,Stride=2,Padding="same");
+    dlYDisc = leakyrelu(dlYDisc,0.2);
+    
+    size_dlYDisc_3 = size(dlYDisc)
+
+    dlYDisc = dlconv(dlYDisc,parameters.Conv4.Weights,parameters.Conv4.Bias,Stride=2,Padding="same");
+    dlYDisc = leakyrelu(dlYDisc,0.2);
+    
+    size_dlYDisc_4 = size(dlYDisc)
+
+    dlYDisc = dlconv(dlYDisc,parameters.Conv5.Weights,parameters.Conv5.Bias,Stride=2,Padding="same");
+    dlYDisc = leakyrelu(dlYDisc,0.2);
+     
+    size_dlYDisc_5 = size(dlYDisc)
+
+    dlYDisc = stripdims(dlYDisc);
+    dlYDisc = permute(dlYDisc,[3 2 1 4]);
+    dlYDisc = reshape(dlYDisc,4*4*64*16,numel(dlYDisc)/(4*4*64*16));
+    
+    size_dlYDisc_1 = size(dlYDisc)
+
+    weights = parameters.FC.Weights;
+    bias = parameters.FC.Bias;
+    dlYDisc = fullyconnect(dlYDisc,weights,bias,Dataformat="CB");
 end
 
 

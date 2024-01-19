@@ -154,11 +154,14 @@ end
 % Discriminator Architecture
 function dlYDisc = modelDiscriminator(dlX,parameters)
 
-    % size_dlX = size(dlX)
+    size_dlX_init = size(dlX)
 
-    dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=2,Padding="same");
+    % dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=2,Padding="same");
+    dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=[2, 8], Padding=[2, 2]);
     dlYDisc = leakyrelu(dlYDisc,0.2);
     
+    size_dlYDisc_1 = size(dlYDisc)
+
     dlYDisc = dlconv(dlYDisc,parameters.Conv2.Weights,parameters.Conv2.Bias,Stride=2,Padding="same");
     dlYDisc = leakyrelu(dlYDisc,0.2);
     
@@ -186,6 +189,8 @@ function gradientsDiscriminator = modelDiscriminatorGradients(discriminatorParam
     % Calculate the predictions for real data with the discriminator network.
     Y = modelDiscriminator(X,discriminatorParameters);
     
+    disp("Model discriminator ran!");
+
     % Calculate the predictions for generated data with the discriminator network.
     Xgen = modelGenerator(Z,generatorParameters);
     Ygen = modelDiscriminator(dlarray(Xgen,"SSCB"),discriminatorParameters);
@@ -211,15 +216,18 @@ end
 
 % Discriminator Weights Initializer
 function discriminatorParameters = initializeDiscriminatorWeights
-    filterSize = [5 5];
+    filterSize1 = [6 12];
     dim = 64;
     
     % Conv2D
-    weights = iGlorotInitialize([filterSize(1) filterSize(2) 1 dim]);
+    weights = iGlorotInitialize([filterSize1(1) filterSize1(2) 1 dim]);
     bias = zeros(1,1,dim,"single");
     discriminatorParameters.Conv1.Weights = dlarray(weights);
     discriminatorParameters.Conv1.Bias = dlarray(bias);
     
+
+    filterSize = [5 5];
+
     % Conv2D
     weights = iGlorotInitialize([filterSize(1) filterSize(2) dim 2*dim]);
     bias = zeros(1,1,2*dim,"single");
@@ -279,14 +287,24 @@ function training_data = getTrainingData(angle)
 
     assumed_sample_rate = 32000;
 
-    frequency_step = 100; % Sweep over every 100Hz
-    time_precision = 0.01; % 10ms precision
+    % frequency_step = 100; % Sweep over every 100Hz
+    % time_precision = 0.01; % 10ms precision
+
+    frequency_step = 62.5;
+    time_precision = 1/frequency_step;
     
 
     fft_length = assumed_sample_rate/frequency_step;
     win_length = assumed_sample_rate * time_precision;
     win = hann(win_length,"periodic");
-    overlapLength = win_length/2;
+
+    total_time = 1;
+    target_time_points = 128;
+    
+    overlap_portion = ((total_time*frequency_step)-1)/(target_time_points-1);
+    overlap_length = ceil( win_length * (1 - overlap_portion) );
+
+    % overlapLength = win_length/2;
     
     % 2 First, determine the number of partitions for the dataset. If 
     % you do not have Parallel Computing Toolbox™, use a single partition.
@@ -301,7 +319,8 @@ function training_data = getTrainingData(angle)
     % subds = partition(ads,numPar,ii);
     subds = ads;
     % STrain = zeros(fft_length/2+1,128,1,numel(subds.Files));
-    STrain = zeros(fft_length/2+1,199,1,numel(subds.Files));
+    % STrain = zeros(fft_length/2+1,199,1,numel(subds.Files));
+    STrain = zeros(fft_length,target_time_points,1,numel(subds.Files));
     
     size(STrain)
 
@@ -324,7 +343,7 @@ function training_data = getTrainingData(angle)
         % S0 = stft(x,Window=win,OverlapLength=overlapLength,FrequencyRange="onesided");
         S0 = stft(x, seconds(1/xinfo.SampleRate), ...
             FFTLength = fft_length, Window=win, ...
-            OverlapLength=overlapLength, FrequencyRange="centered");
+            OverlapLength=overlap_length, FrequencyRange="centered");
         
         % Magnitude
         S = abs(S0);
@@ -356,9 +375,11 @@ function training_data = getTrainingData(angle)
     Y(Y>1) = 1;
     STrain = reshape(Y,size(STrain));
 
+    checkSize = size(STrain)
+
     % 9 Discard the last frequency bin to force the number of STFT bins 
     % to a power of two (which works well with convolutional layers).
-    STrain = STrain(1:end-1,:,:,:);
+    % STrain = STrain(1:end-1,:,:,:);
 
     % 10 Permute the dimensions in preparation for feeding to the 
     % discriminator.
@@ -385,6 +406,8 @@ function train_model
     test_angle = 30;
 
     STrain = getTrainingData(test_angle);
+
+    checkSizeMain = size(STrain)
 
     % 2 Compute the number of iterations required to consume the data.
 

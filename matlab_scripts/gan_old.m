@@ -1,11 +1,4 @@
-train_model
-
-% ================ Utility Functions ================
-function out = sigmoid_cross_entropy_with_logits(x,z)
-    out = max(x, 0) - x .* z + log(1 + exp(-abs(x)));
-end
-
-
+% Utility Functions
 function w = iGlorotInitialize(sz)
 if numel(sz) == 2
     numInputs = sz(2);
@@ -17,49 +10,6 @@ end
 multiplier = sqrt(2 / (numInputs + numOutputs));
 w = multiplier * sqrt(3) * (2 * rand(sz,"single") - 1);
 end
-
-
-function out = preprocessAudio(in,fs)
-    % Ensure mono
-    in = mean(in,2);
-    
-    % Resample to 16kHz
-    % x = resample(in,16e3,fs);
-    
-    % Cut or pad to have approximately 1-second length plus padding to ensure
-    % 128 analysis windows for an STFT with 256-point window and 128-point
-    % overlap.
-    % y = trimOrPad(x,16513);
-    y = trimOrPad(in, 32000);
-    
-    % Normalize
-    out = y./max(abs(y));
-end
-
-
-function y = trimOrPad(x,n)
-    %trimOrPad Trim or pad audio
-    %
-    % y = trimOrPad(x,n) trims or pads the input x to n samples along the first
-    % dimension. If x is trimmed, it is trimmed equally on the front and back.
-    % If x is padded, it is padded equally on the front and back with zeros.
-    % For odd-length trimming or padding, the extra sample is trimmed or padded
-    % from the back.
-    
-    a = size(x,1);
-    if a < n
-        frontPad = floor((n-a)/2);
-        backPad = n - a - frontPad;
-        y = [zeros(frontPad,size(x,2),like=x);x;zeros(backPad,size(x,2),like=x)];
-    elseif a > n
-        frontTrim = floor((a-n)/2) + 1;
-        backTrim = a - n - frontTrim;
-        y = x(frontTrim:end-backTrim,:);
-    else
-        y = x;
-    end
-end
-
 
 % ================ Generator Code ================
 % Generator Architecture
@@ -250,37 +200,25 @@ end
 
 
 % Get training the data
-function training_data = getTrainingData(angle)
+function getTrainingData
 
     % 0 Load Training Data
-    path = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_1", angle);
-    path2 = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_2", angle);
+    path = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_1\\%dDeg_EARS_1_%d.wav", angle, angle, chunk_no)
+    path2 = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_2\\%dDeg_EARS_2_%d.wav", angle, angle, chunk_no);
     
-    canUseParallelPool = false;
-
-    %{
     if angle == 0 || angle == 15
         path = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_1\\%dDeg_EARSFullAudioRecording_1_%d.wav", angle, angle, chunk_no)
         path2 = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_2\\%dDeg_EARSFullAudioRecording_2_%d.wav", angle, angle, chunk_no);
     end
-    %}
     
 
     % Change this to match our input data
-    ads = audioDatastore(path,IncludeSubfolders=true);
+    ads = audioDatastore(percussivesoundsFolder,IncludeSubfolders=true);
 
     % 1 Define the STFT parameters.
-
-    assumed_sample_rate = 32000;
-
-    frequency_step = 100; % Sweep over every 100Hz
-    time_precision = 0.01; % 10ms precision
-    
-
-    fft_length = assumed_sample_rate/frequency_step;
-    win_length = assumed_sample_rate * time_precision;
-    win = hann(win_length,"periodic");
-    overlapLength = win_length/2;
+    fftLength = 256;
+    win = hann(fftLength,"periodic");
+    overlapLength = 128;
     
     % 2 First, determine the number of partitions for the dataset. If 
     % you do not have Parallel Computing Toolbox™, use a single partition.
@@ -291,34 +229,22 @@ function training_data = getTrainingData(angle)
         numPar = 1;
     end
 
+
     % 3 For each partition, read from the datastore and compute the STFT.
     parfor ii = 1:numPar
         subds = partition(ads,numPar,ii);
-
-        STrain = zeros(fft_length/2+1,199,1,numel(subds.Files)); 
-        % STrain = zeros(fft_length/2+1,128,1,numel(subds.Files));
+        STrain = zeros(fftLength/2+1,128,1,numel(subds.Files));
         
-        size(STrain)
-
         for idx = 1:numel(subds.Files)
             
-            idx
-
             % Read audio
             [x,xinfo] = read(subds);
-
-            dis = x
-
+    
             % Preprocess
             x = preprocessAudio(single(x),xinfo.SampleRate);
-   
-            temp = idx+1
-
+    
             % STFT
-            % S0 = stft(x,Window=win,OverlapLength=overlapLength,FrequencyRange="onesided");
-            S0 = stft(x, seconds(1/xinfo.SampleRate), ...
-                FFTLength = fft_length, Window=win, ...
-                OverlapLength=overlapLength, FrequencyRange="onesided");
+            S0 = stft(x,Window=win,OverlapLength=overlapLength,FrequencyRange="onesided");
             
             % Magnitude
             S = abs(S0);
@@ -358,7 +284,6 @@ function training_data = getTrainingData(angle)
     % discriminator.
     STrain = permute(STrain,[2 1 3 4]);
 
-    training_data = STrain;
 end
 
 
@@ -376,10 +301,6 @@ function train_model
 
     saveFrequency = 3;
 
-    test_angle = 0;
-
-    STrain = getTrainingData(test_angle);
-
     % 2 Compute the number of iterations required to consume the data.
     numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize)
 
@@ -396,7 +317,7 @@ function train_model
 
     % 4 Train on a GPU if one is available. Using a GPU requires 
     % Parallel Computing Toolbox™.
-    executionEnvironment = "auto";
+    executionEnvironment = auto;
     canUseGPU = false;
 
     % 5 Initialize the generator and discriminator weights. The 

@@ -7,10 +7,10 @@ end
 
 
 function w = iGlorotInitialize(sz)
-if numel(sz) == 2
+if numel(sz) == 2 % fully-connected
     numInputs = sz(2);
     numOutputs = sz(1);
-else
+else % Convolutional Layers
     numInputs = prod(sz(1:3));
     numOutputs = prod(sz([1 2 4]));
 end
@@ -153,6 +153,9 @@ end
 % ================ Discriminator Code ================
 % Discriminator Architecture
 function dlYDisc = modelDiscriminator(dlX,parameters)
+
+    % size_dlX = size(dlX)
+
     dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=2,Padding="same");
     dlYDisc = leakyrelu(dlYDisc,0.2);
     
@@ -253,9 +256,12 @@ end
 function training_data = getTrainingData(angle)
 
     % 0 Load Training Data
-    path = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_1", angle);
-    path2 = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_2", angle);
+    % path = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_1", angle);
+    % path2 = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_2", angle);
     
+    path = sprintf("..\\Data\\TestData\\%dDeg_EARS_1", angle);
+    path2 = sprintf("..\\Data\\TestData\\%dDeg_EARS_2", angle);
+
     canUseParallelPool = false;
 
     %{
@@ -292,41 +298,41 @@ function training_data = getTrainingData(angle)
     end
 
     % 3 For each partition, read from the datastore and compute the STFT.
-    parfor ii = 1:numPar
-        subds = partition(ads,numPar,ii);
-
-        STrain = zeros(fft_length/2+1,199,1,numel(subds.Files)); 
-        % STrain = zeros(fft_length/2+1,128,1,numel(subds.Files));
-        
-        size(STrain)
-
-        for idx = 1:numel(subds.Files)
-            
-            idx
-
-            % Read audio
-            [x,xinfo] = read(subds);
-
-            dis = x
-
-            % Preprocess
-            x = preprocessAudio(single(x),xinfo.SampleRate);
-   
-            temp = idx+1
-
-            % STFT
-            % S0 = stft(x,Window=win,OverlapLength=overlapLength,FrequencyRange="onesided");
-            S0 = stft(x, seconds(1/xinfo.SampleRate), ...
-                FFTLength = fft_length, Window=win, ...
-                OverlapLength=overlapLength, FrequencyRange="onesided");
-            
-            % Magnitude
-            S = abs(S0);
+    % subds = partition(ads,numPar,ii);
+    subds = ads;
+    % STrain = zeros(fft_length/2+1,128,1,numel(subds.Files));
+    STrain = zeros(fft_length/2+1,199,1,numel(subds.Files));
     
-            STrain(:,:,:,idx) = S; % Populates the 4th dimension with stft data
+    size(STrain)
+
+    for idx = 1:numel(subds.Files)
+        if mod(idx, 100) == 0
+            ack = sprintf("Iteration %d", idx)
         end
-        STrainC{ii} = STrain; % Contains all the 4D arrays with 3 dimensions of 0s and 1 dimension of stft data
+
+        % Read audio
+        [x,xinfo] = read(subds);
+
+        % dis = x
+
+        % x_size = size(x)
+
+        % Preprocess
+        x = preprocessAudio(single(x),xinfo.SampleRate);
+
+        % STFT
+        % S0 = stft(x,Window=win,OverlapLength=overlapLength,FrequencyRange="onesided");
+        S0 = stft(x, seconds(1/xinfo.SampleRate), ...
+            FFTLength = fft_length, Window=win, ...
+            OverlapLength=overlapLength, FrequencyRange="centered");
+        
+        % Magnitude
+        S = abs(S0);
+
+        STrain(:,:,:,idx) = S; % Populates the 4th dimension with stft data
+
     end
+    STrainC{1} = STrain; % Contains all the 4D arrays with 3 dimensions of 0s and 1 dimension of stft data
 
     % 4 Convert the output to a four-dimensional array with STFTs along the fourth dimension.
     STrain = cat(4,STrainC{:});
@@ -376,12 +382,15 @@ function train_model
 
     saveFrequency = 3;
 
-    test_angle = 0;
+    test_angle = 30;
 
     STrain = getTrainingData(test_angle);
 
     % 2 Compute the number of iterations required to consume the data.
-    numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize)
+
+    % numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize) = 125
+    % numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize)
+    numIterationsPerEpoch = 2
 
     % Pretty much add a breakpoint here
     k = waitforbuttonpress;

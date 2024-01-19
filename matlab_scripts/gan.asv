@@ -277,7 +277,7 @@ function training_data = getTrainingData(angle)
     time_precision = 0.01; % 10ms precision
     
 
-    fft_length = assumed_sample_rate/frequency_step;
+    fftLength = assumed_sample_rate/frequency_step;
     win_length = assumed_sample_rate * time_precision;
     win = hann(win_length,"periodic");
     overlapLength = win_length/2;
@@ -294,9 +294,7 @@ function training_data = getTrainingData(angle)
     % 3 For each partition, read from the datastore and compute the STFT.
     parfor ii = 1:numPar
         subds = partition(ads,numPar,ii);
-
-        STrain = zeros(fft_length/2+1,199,1,numel(subds.Files)); 
-        % STrain = zeros(fft_length/2+1,128,1,numel(subds.Files));
+        STrain = zeros(fftength/2+1,128,1,numel(subds.Files));
         
         size(STrain)
 
@@ -396,7 +394,7 @@ function train_model
 
     % 4 Train on a GPU if one is available. Using a GPU requires 
     % Parallel Computing Toolbox™.
-    executionEnvironment = "auto";
+    executionEnvironment = auto;
     canUseGPU = false;
 
     % 5 Initialize the generator and discriminator weights. The 

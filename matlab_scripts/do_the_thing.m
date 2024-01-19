@@ -14,6 +14,19 @@ end
 
 function uhh
 
+    % 0 Load Training Data
+    path = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_1\\%dDeg_EARS_1_%d.wav", angle, angle, chunk_no)
+    path2 = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_2\\%dDeg_EARS_2_%d.wav", angle, angle, chunk_no);
+    
+    if angle == 0 || angle == 15
+        path = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_1\\%dDeg_EARSFullAudioRecording_1_%d.wav", angle, angle, chunk_no)
+        path2 = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_2\\%dDeg_EARSFullAudioRecording_2_%d.wav", angle, angle, chunk_no);
+    end
+    
+
+    % Change this to match our input data
+    ads = audioDatastore(percussivesoundsFolder,IncludeSubfolders=true);
+
     % 1 Define the STFT parameters.
     fftLength = 256;
     win = hann(fftLength,"periodic");
@@ -48,9 +61,9 @@ function uhh
             % Magnitude
             S = abs(S0);
     
-            STrain(:,:,:,idx) = S;
+            STrain(:,:,:,idx) = S; % Populates the 4th dimension with stft data
         end
-        STrainC{ii} = STrain;
+        STrainC{ii} = STrain; % Contains all the 4D arrays with 3 dimensions of 0s and 1 dimension of stft data
     end
 
     % 4 Convert the output to a four-dimensional array with STFTs along the fourth dimension.
@@ -219,5 +232,4 @@ function train_model
             end
         end
     end
-
 end

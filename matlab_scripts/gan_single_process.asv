@@ -292,41 +292,41 @@ function training_data = getTrainingData(angle)
     end
 
     % 3 For each partition, read from the datastore and compute the STFT.
-    parfor ii = 1:numPar
-        subds = partition(ads,numPar,ii);
-
-        STrain = zeros(fft_length/2+1,199,1,numel(subds.Files)); 
-        % STrain = zeros(fft_length/2+1,128,1,numel(subds.Files));
-        
-        size(STrain)
-
-        for idx = 1:numel(subds.Files)
-            
-            idx
-
-            % Read audio
-            [x,xinfo] = read(subds);
-
-            dis = x
-
-            % Preprocess
-            x = preprocessAudio(single(x),xinfo.SampleRate);
-   
-            temp = idx+1
-
-            % STFT
-            % S0 = stft(x,Window=win,OverlapLength=overlapLength,FrequencyRange="onesided");
-            S0 = stft(x, seconds(1/xinfo.SampleRate), ...
-                FFTLength = fft_length, Window=win, ...
-                OverlapLength=overlapLength, FrequencyRange="onesided");
-            
-            % Magnitude
-            S = abs(S0);
+    % subds = partition(ads,numPar,ii);
+    subds = ads;
+    % STrain = zeros(fft_length/2+1,128,1,numel(subds.Files));
+    STrain = zeros(fft_length/2+1,199,1,numel(subds.Files));
     
-            STrain(:,:,:,idx) = S; % Populates the 4th dimension with stft data
-        end
-        STrainC{ii} = STrain; % Contains all the 4D arrays with 3 dimensions of 0s and 1 dimension of stft data
+    size(STrain)
+
+    for idx = 1:numel(subds.Files)
+        if (idx % 100 == 0)
+            ack = sprintf("Iteration %d", idx);
+            disp("Iteration %d", idx)
+
+        % Read audio
+        [x,xinfo] = read(subds);
+
+        % dis = x
+
+        x_size = size(x)
+
+        % Preprocess
+        x = preprocessAudio(single(x),xinfo.SampleRate);
+
+        % STFT
+        % S0 = stft(x,Window=win,OverlapLength=overlapLength,FrequencyRange="onesided");
+        S0 = stft(x, seconds(1/xinfo.SampleRate), ...
+            FFTLength = fft_length, Window=win, ...
+            OverlapLength=overlapLength, FrequencyRange="onesided");
+        
+        % Magnitude
+        S = abs(S0);
+
+        STrain(:,:,:,idx) = S; % Populates the 4th dimension with stft data
+
     end
+    STrainC{1} = STrain; % Contains all the 4D arrays with 3 dimensions of 0s and 1 dimension of stft data
 
     % 4 Convert the output to a four-dimensional array with STFTs along the fourth dimension.
     STrain = cat(4,STrainC{:});
@@ -376,7 +376,7 @@ function train_model
 
     saveFrequency = 3;
 
-    test_angle = 0;
+    test_angle = 30;
 
     STrain = getTrainingData(test_angle);
 
@@ -396,7 +396,7 @@ function train_model
 
     % 4 Train on a GPU if one is available. Using a GPU requires 
     % Parallel Computing Toolbox™.
-    executionEnvironment = "auto";
+    executionEnvironment = auto;
     canUseGPU = false;
 
     % 5 Initialize the generator and discriminator weights. The 

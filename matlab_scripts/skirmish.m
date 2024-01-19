@@ -53,5 +53,18 @@ std_dev = sqrt(variance)
 
 dlZ = dlarray(2 * ( rand(1,1,100,1,"single") - 0.5 ));
 
+%{
+classdef fcont
+    methods
+        function try_this = tryThis(x)
+        
+            try_this = x*2
+        
+        end
+
+    end
+end
+%}
+
 
 

@@ -65,24 +65,42 @@ end
 % Generator Architecture
 function dlYGen = modelGenerator(dlX,parameters)
 
+    % size_dlZ_init = size(dlX)
+
     dlYGen = fullyconnect(dlX,parameters.FC.Weights,parameters.FC.Bias,Dataformat="SSCB");
     
-    dlYGen = reshape(dlYGen,[1024 4 4 size(dlYGen,2)]);
+    % size_Gen_FC = size(dlYGen)
+
+    dlYGen = reshape(dlYGen,[1024 16 4 size(dlYGen,2)]);
+
+    % size_Gen_Reshape = size(dlYGen)
+
     dlYGen = permute(dlYGen,[3 2 1 4]);
+
+    % size_Gen_permuted = size(dlYGen)
+
     dlYGen = relu(dlYGen);
     
     dlYGen = dltranspconv(dlYGen,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=2,Cropping="same",DataFormat="SSCB");
     dlYGen = relu(dlYGen);
     
+    % size_Gen_TC1 = size(dlYGen)
+
     dlYGen = dltranspconv(dlYGen,parameters.Conv2.Weights,parameters.Conv2.Bias,Stride=2,Cropping="same",DataFormat="SSCB");
     dlYGen = relu(dlYGen);
     
+    % size_Gen_TC2 = size(dlYGen)
+
     dlYGen = dltranspconv(dlYGen,parameters.Conv3.Weights,parameters.Conv3.Bias,Stride=2,Cropping="same",DataFormat="SSCB");
     dlYGen = relu(dlYGen);
     
+    % size_Gen_TC3 = size(dlYGen)
+
     dlYGen = dltranspconv(dlYGen,parameters.Conv4.Weights,parameters.Conv4.Bias,Stride=2,Cropping="same",DataFormat="SSCB");
     dlYGen = relu(dlYGen);
     
+    % size_Gen_TC4 = size(dlYGen)
+
     dlYGen = dltranspconv(dlYGen,parameters.Conv5.Weights,parameters.Conv5.Bias,Stride=2,Cropping="same",DataFormat="SSCB");
     dlYGen = tanh(dlYGen);
 end
@@ -111,8 +129,8 @@ function generatorParameters = initializeGeneratorWeights
     dim = 64;
     
     % Dense 1
-    weights = iGlorotInitialize([dim*256,100]);
-    bias = zeros(dim*256,1,"single");
+    weights = iGlorotInitialize([dim*2*512,100]);
+    bias = zeros(dim*2*512,1,"single");
     generatorParameters.FC.Weights = dlarray(weights);
     generatorParameters.FC.Bias = dlarray(bias);
     
@@ -154,30 +172,46 @@ end
 % Discriminator Architecture
 function dlYDisc = modelDiscriminator(dlX,parameters)
 
-    size_dlX_init = size(dlX)
+    % size_dlX_init = size(dlX)
 
-    % dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=2,Padding="same");
-    dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=[2, 8], Padding=[2, 2]);
+    dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=2,Padding="same");
+    % dlYDisc = dlconv(dlX,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=[2, 8], Padding=[2, 2]);
     dlYDisc = leakyrelu(dlYDisc,0.2);
     
-    size_dlYDisc_1 = size(dlYDisc)
+    % size_dlYDisc_1 = size(dlYDisc)
 
     dlYDisc = dlconv(dlYDisc,parameters.Conv2.Weights,parameters.Conv2.Bias,Stride=2,Padding="same");
     dlYDisc = leakyrelu(dlYDisc,0.2);
     
+    % size_dlYDisc_2 = size(dlYDisc)
+
     dlYDisc = dlconv(dlYDisc,parameters.Conv3.Weights,parameters.Conv3.Bias,Stride=2,Padding="same");
     dlYDisc = leakyrelu(dlYDisc,0.2);
     
+    % size_dlYDisc_3 = size(dlYDisc)
+
     dlYDisc = dlconv(dlYDisc,parameters.Conv4.Weights,parameters.Conv4.Bias,Stride=2,Padding="same");
     dlYDisc = leakyrelu(dlYDisc,0.2);
     
+    % size_dlYDisc_4 = size(dlYDisc)
+
     dlYDisc = dlconv(dlYDisc,parameters.Conv5.Weights,parameters.Conv5.Bias,Stride=2,Padding="same");
     dlYDisc = leakyrelu(dlYDisc,0.2);
      
+    % size_dlYDisc_5 = size(dlYDisc)
+
     dlYDisc = stripdims(dlYDisc);
+
+    % size_dlYDiscStripped = size(dlYDisc)
+
     dlYDisc = permute(dlYDisc,[3 2 1 4]);
-    dlYDisc = reshape(dlYDisc,4*4*64*16,numel(dlYDisc)/(4*4*64*16));
+
+    % size_dlYDiscPermuted = size(dlYDisc)
+
+    dlYDisc = reshape(dlYDisc,(4*4*16*2)*(64*2),numel(dlYDisc)/((4*4*16*2)*(64*2)));
     
+    % size_discReshape = size(dlYDisc)
+
     weights = parameters.FC.Weights;
     bias = parameters.FC.Bias;
     dlYDisc = fullyconnect(dlYDisc,weights,bias,Dataformat="CB");
@@ -216,18 +250,15 @@ end
 
 % Discriminator Weights Initializer
 function discriminatorParameters = initializeDiscriminatorWeights
-    filterSize1 = [6 12];
+    filterSize = [5 5];
     dim = 64;
     
     % Conv2D
-    weights = iGlorotInitialize([filterSize1(1) filterSize1(2) 1 dim]);
+    weights = iGlorotInitialize([filterSize(1) filterSize(2) 1 dim]);
     bias = zeros(1,1,dim,"single");
     discriminatorParameters.Conv1.Weights = dlarray(weights);
     discriminatorParameters.Conv1.Bias = dlarray(bias);
     
-
-    filterSize = [5 5];
-
     % Conv2D
     weights = iGlorotInitialize([filterSize(1) filterSize(2) dim 2*dim]);
     bias = zeros(1,1,2*dim,"single");
@@ -253,7 +284,7 @@ function discriminatorParameters = initializeDiscriminatorWeights
     discriminatorParameters.Conv5.Bias = dlarray(bias);
     
     % fully connected
-    weights = iGlorotInitialize([1,4 * 4 * dim * 16]);
+    weights = iGlorotInitialize([1, (8 * 16) * (dim * 8)]);
     bias = zeros(1,1,"single");
     discriminatorParameters.FC.Weights = dlarray(weights);
     discriminatorParameters.FC.Bias = dlarray(bias);
@@ -264,20 +295,9 @@ end
 function training_data = getTrainingData(angle)
 
     % 0 Load Training Data
-    % path = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_1", angle);
-    % path2 = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_2", angle);
-    
     path = sprintf("..\\Data\\TestData\\%dDeg_EARS_1", angle);
-    path2 = sprintf("..\\Data\\TestData\\%dDeg_EARS_2", angle);
 
     canUseParallelPool = false;
-
-    %{
-    if angle == 0 || angle == 15
-        path = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_1\\%dDeg_EARSFullAudioRecording_1_%d.wav", angle, angle, chunk_no)
-        path2 = sprintf("..\\Data\\SplitDataChunks\\%dDeg_EARS_2\\%dDeg_EARSFullAudioRecording_2_%d.wav", angle, angle, chunk_no);
-    end
-    %}
     
 
     % Change this to match our input data
@@ -287,24 +307,19 @@ function training_data = getTrainingData(angle)
 
     assumed_sample_rate = 32000;
 
-    % frequency_step = 100; % Sweep over every 100Hz
-    % time_precision = 0.01; % 10ms precision
-
-    frequency_step = 62.5;
-    time_precision = 1/frequency_step;
+    frequency_step = 62.5; % Frequency precision
+    time_precision = 1/frequency_step; % Time precision
     
 
     fft_length = assumed_sample_rate/frequency_step;
     win_length = assumed_sample_rate * time_precision;
     win = hann(win_length,"periodic");
 
-    total_time = 1;
+    total_time = 1; % total time of a sample in seconds
     target_time_points = 128;
     
     overlap_portion = ((total_time*frequency_step)-1)/(target_time_points-1);
     overlap_length = ceil( win_length * (1 - overlap_portion) );
-
-    % overlapLength = win_length/2;
     
     % 2 First, determine the number of partitions for the dataset. If 
     % you do not have Parallel Computing Toolbox™, use a single partition.
@@ -332,15 +347,10 @@ function training_data = getTrainingData(angle)
         % Read audio
         [x,xinfo] = read(subds);
 
-        % dis = x
-
-        % x_size = size(x)
-
         % Preprocess
         x = preprocessAudio(single(x),xinfo.SampleRate);
 
         % STFT
-        % S0 = stft(x,Window=win,OverlapLength=overlapLength,FrequencyRange="onesided");
         S0 = stft(x, seconds(1/xinfo.SampleRate), ...
             FFTLength = fft_length, Window=win, ...
             OverlapLength=overlap_length, FrequencyRange="centered");
@@ -403,20 +413,17 @@ function train_model
 
     saveFrequency = 3;
 
+
     test_angle = 30;
-
     STrain = getTrainingData(test_angle);
-
-    checkSizeMain = size(STrain)
 
     % 2 Compute the number of iterations required to consume the data.
 
-    % numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize) = 125
     % numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize)
     numIterationsPerEpoch = 2
 
     % Pretty much add a breakpoint here
-    k = waitforbuttonpress;
+    % k = waitforbuttonpress;
 
     % 3 Specify the options for Adam optimization. Set the learn rate of 
     % the generator and discriminator to 0.0002. For both networks, use a 
@@ -534,6 +541,5 @@ function train_model
 
     msg = sprintf("Epoch %d done!", epoch);
     disp(msg);
-    k = waitforbuttonpress;
     end
 end

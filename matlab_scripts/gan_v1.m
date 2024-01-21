@@ -223,7 +223,7 @@ function gradientsDiscriminator = modelDiscriminatorGradients(discriminatorParam
     % Calculate the predictions for real data with the discriminator network.
     Y = modelDiscriminator(X,discriminatorParameters);
     
-    disp("Model discriminator ran!");
+    % disp("Model discriminator ran!");
 
     % Calculate the predictions for generated data with the discriminator network.
     Xgen = modelGenerator(Z,generatorParameters);
@@ -297,9 +297,11 @@ function training_data = getTrainingData(angle)
     % 0 Load Training Data
     % path = sprintf("..\\Data\\TestData\\%dDeg_EARS_1", angle);
     % F:\DuncanM\Matlab\Data\TrainingData\TIMITOnly\90Deg_Leading500
-    path = sprintf("..\\Data\\TrainingData\\TIMITOnly\\%dDeg_Leading500", angle);
+    % path = sprintf("..\\Data\\TrainingData\\TIMITOnly\\%dDeg_Leading500", angle);
+    % F:\DuncanM\Matlab\Data\TrainingData\TIMITOnly\90Deg_EARS_1
+    path = sprintf("..\\Data\\TrainingData\\TIMITOnly\\%dDeg_EARS_1", angle);
 
-    canUseParallelPool = false;
+    canUseParallelPool = true;
     
 
     % Change this to match our input data
@@ -332,38 +334,44 @@ function training_data = getTrainingData(angle)
         numPar = 1;
     end
 
+    numParMsg = sprintf("numPar = %d\n", numPar);
+    disp(numParMsg);
+
     % 3 For each partition, read from the datastore and compute the STFT.
-    % subds = partition(ads,numPar,ii);
-    subds = ads;
-    % STrain = zeros(fft_length/2+1,128,1,numel(subds.Files));
-    % STrain = zeros(fft_length/2+1,199,1,numel(subds.Files));
-    STrain = zeros(fft_length,target_time_points,1,numel(subds.Files));
+    parfor ii = 1:numPar
     
-    size(STrain)
-
-    for idx = 1:numel(subds.Files)
-        if mod(idx, 100) == 0
-            ack = sprintf("Iteration %d", idx)
-        end
-
-        % Read audio
-        [x,xinfo] = read(subds);
-
-        % Preprocess
-        x = preprocessAudio(single(x),xinfo.SampleRate);
-
-        % STFT
-        S0 = stft(x, seconds(1/xinfo.SampleRate), ...
-            FFTLength = fft_length, Window=win, ...
-            OverlapLength=overlap_length, FrequencyRange="centered");
+        subds = partition(ads,numPar,ii);
+        % subds = ads;
+        % STrain = zeros(fft_length/2+1,128,1,numel(subds.Files));
+        % STrain = zeros(fft_length/2+1,199,1,numel(subds.Files));
+        STrain = zeros(fft_length,target_time_points,1,numel(subds.Files));
         
-        % Magnitude
-        S = abs(S0);
-
-        STrain(:,:,:,idx) = S; % Populates the 4th dimension with stft data
-
+        % size(STrain)
+    
+        for idx = 1:numel(subds.Files)
+            if mod(idx, 100) == 0
+                ack = sprintf("Iteration %d", idx)
+            end
+    
+            % Read audio
+            [x,xinfo] = read(subds);
+    
+            % Preprocess
+            x = preprocessAudio(single(x),xinfo.SampleRate);
+    
+            % STFT
+            S0 = stft(x, seconds(1/xinfo.SampleRate), ...
+                FFTLength = fft_length, Window=win, ...
+                OverlapLength=overlap_length, FrequencyRange="centered");
+            
+            % Magnitude
+            S = abs(S0);
+    
+            STrain(:,:,:,idx) = S; % Populates the 4th dimension with stft data
+    
+        end
+        STrainC{ii} = STrain; % Contains all the 4D arrays with 3 dimensions of 0s and 1 dimension of stft data
     end
-    STrainC{1} = STrain; % Contains all the 4D arrays with 3 dimensions of 0s and 1 dimension of stft data
 
     % 4 Convert the output to a four-dimensional array with STFTs along the fourth dimension.
     STrain = cat(4,STrainC{:});
@@ -401,6 +409,23 @@ function training_data = getTrainingData(angle)
 end
 
 
+function sample = sampleOutputAndLoss(generatorParameters, discriminatorParameters, X, Z)
+
+    % Run another GAN game to get a sample of results + loss for this
+    % iteration, averaged out over the epoch
+    
+    Y = modelDiscriminator(X, discriminatorParameters);
+
+    Xgen = modelGenerator(Z,generatorParameters);
+    Ygen = modelDiscriminator(dlarray(Xgen,"SSCB"),discriminatorParameters);
+
+    % Calculate the GAN loss.
+    lossDiscriminator = ganDiscriminatorLoss(Y,Ygen);
+    lossGenerator = ganGeneratorLoss(Ygen);
+
+    sample = {Xgen, Y, Ygen, lossGenerator, lossDiscriminator};
+end
+
 
 % Training the model
 function train_model
@@ -411,7 +436,7 @@ function train_model
     % maxEpochs = 1000;
     % miniBatchSize = 64;
     maxEpochs = 6;
-    miniBatchSize = 4;
+    miniBatchSize = 64;
 
     saveFrequency = 3;
 
@@ -422,7 +447,9 @@ function train_model
     % 2 Compute the number of iterations required to consume the data.
 
     % numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize)
-    numIterationsPerEpoch = 2
+    numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize)
+
+    % numIterationsPerEpochProper = floor(size(STrain,4)/miniBatchSize)
 
     % Pretty much add a breakpoint here
     % k = waitforbuttonpress;
@@ -438,7 +465,7 @@ function train_model
     % 4 Train on a GPU if one is available. Using a GPU requires 
     % Parallel Computing Toolbox™.
     executionEnvironment = "auto";
-    canUseGPU = false;
+    canUseGPU = true;
 
     % 5 Initialize the generator and discriminator weights. The 
     % initializeGeneratorWeights and initializeDiscriminatorWeights 
@@ -454,6 +481,26 @@ function train_model
     trailingAvgSqGenerator = [];
     trailingAvgDiscriminator = [];
     trailingAvgSqDiscriminator = [];
+
+
+    samplesPerEpoch = 10;
+    samplePeriod = floor(numIterationsPerEpoch/samplesPerEpoch)
+    sampleIndex = 1;
+    
+    % Will contain 'samplesPerEpoch' CellArrays
+    innerSampleArray = [];
+
+    epochSampleArray = [];
+
+    numSamples = floor(maxEpochs/saveFrequency);
+
+    epochGeneratorSample = zeros(128, 512, numSamples);
+    epochDiscriminatorSample = zeros(1, 2, numSamples);
+    epochAverageLosses = zeros(1, 2, numSamples);
+
+    tempGeneratorSample = zeros(128, 512, samplesPerEpoch);
+    tempDiscriminatorSample = zeros(1, 2, samplesPerEpoch);
+    tempAverageLosses = zeros(1, 2, samplesPerEpoch);
 
     % 2 Depending on your machine, training this network can take hours. 
     % To skip training, set doTraining to false.
@@ -493,6 +540,7 @@ function train_model
     
             % If training on a GPU, then convert data to gpuArray.
             if (executionEnvironment == "auto" && canUseGPU) || executionEnvironment == "gpu"
+                % disp("Using GPU!");
                 dlZ = gpuArray(dlZ);
                 dlX = gpuArray(dlX);
             end
@@ -517,6 +565,7 @@ function train_model
                 dlZ = gpuArray(dlZ);
             end
             
+            
             % Evaluate the generator gradients using dlfeval and the
             % |modelGeneratorGradients| helper function.
             gradientsGenerator  = ...
@@ -527,21 +576,67 @@ function train_model
                 adamupdate(generatorParameters,gradientsGenerator, ...
                 trailingAvgGenerator,trailingAvgSqGenerator,iteration, ...
                 learnRateGenerator,gradientDecayFactor,squaredGradientDecayFactor);
-        end
+        
+        
+            if (mod(index, samplePeriod) == 0)
+                % tempSample = sampleOutputAndLoss(generatorParameters, discriminatorParameters, dlX, dlZ);
     
+                tempSample = dlfeval(@sampleOutputAndLoss, generatorParameters, ... 
+                discriminatorParameters, dlX, dlZ);
+    
+                %{
+                testSize = size(tempSample{1})
+                testSize2 = size(tempSample{2})
+                testSize3 = size(tempSample{3})
+                testSize4 = size(tempSample{4})
+                testSize5 = size(tempSample{5})
+                %}
+    
+                tempGeneratorSample(:, :, sampleIndex) = mean(dlarray(tempSample{1}, "SSCB"), 4);
+                tempDiscriminatorSample(1, 1, sampleIndex) = mean(dlarray(tempSample{2}, "SB"), 2);
+                tempDiscriminatorSample(1, 2, sampleIndex) = mean(dlarray(tempSample{3}, "SB"), 2);
+                tempAverageLosses(1, 1, sampleIndex) = tempSample{4};
+                tempAverageLosses(1, 2, sampleIndex) = tempSample{5};
+    
+                sampleIndex = sampleIndex + 1;
+
+            end
+        
+        end
+
+
+        % Get epoch samples
+        epochGeneratorSample(:, :, epoch) = mean(tempGeneratorSample, 3);
+        epochDiscriminatorSample(:, :, epoch) = mean(tempDiscriminatorSample, 3);
+        epochAverageLosses(:, :, epoch) = mean(tempAverageLosses, 3);
+
         % Every 10 epochs, save a training snapshot to a MAT file.
         if mod(epoch,saveFrequency)==0
             disp("Epoch " + epoch + " out of " + maxEpochs + " complete.");
             if saveCheckpoints
+                
+                saveIter = int32(epoch/saveFrequency);
+                paramSaveFilename = sprintf("audiogancheckpoint%d.mat", saveIter);
+
+                disp(paramSaveFilename);
+
                 % Save checkpoint in case training is interrupted.
-                save("audiogancheckpoint.mat", ...
+                save(paramSaveFilename, ...
                     "generatorParameters","discriminatorParameters", ...
                     "trailingAvgDiscriminator","trailingAvgSqDiscriminator", ...
-                    "trailingAvgGenerator","trailingAvgSqGenerator","iteration");
+                    "trailingAvgGenerator","trailingAvgSqGenerator","iteration", ...
+                    "epochGeneratorSample", "epochDiscriminatorSample", ...
+                    "epochAverageLosses");
             end
         end
 
-    msg = sprintf("Epoch %d done!", epoch);
-    disp(msg);
+        %{
+        testSizeGenSample = size(mean(tempGeneratorSample, 3))
+        testSizeDiscSample = size(mean(tempDiscriminatorSample, 3))
+        testSizeLossSample = size(mean(tempAverageLosses, 3))
+        %}
+    
+        msg = sprintf("Epoch %d done!", epoch);
+        disp(msg);
     end
 end

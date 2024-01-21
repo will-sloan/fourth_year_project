@@ -19,7 +19,7 @@ w = multiplier * sqrt(3) * (2 * rand(sz,"single") - 1);
 end
 
 
-function out = preprocessAudio(in,fs)
+function out = preprocessAudio(in)
     % Ensure mono
     in = mean(in,2);
     
@@ -79,25 +79,33 @@ function dlYGen = modelGenerator(dlX,parameters)
 
     % size_Gen_permuted = size(dlYGen)
 
-    dlYGen = relu(dlYGen);
+    % dlYGen = relu(dlYGen);
+    dlYGen = leakyrelu(dlYGen, 0.2);
     
     dlYGen = dltranspconv(dlYGen,parameters.Conv1.Weights,parameters.Conv1.Bias,Stride=2,Cropping="same",DataFormat="SSCB");
-    dlYGen = relu(dlYGen);
+    % dlYGen = relu(dlYGen);
+    dlYGen = leakyrelu(dlYGen, 0.2);
+
     
     % size_Gen_TC1 = size(dlYGen)
 
     dlYGen = dltranspconv(dlYGen,parameters.Conv2.Weights,parameters.Conv2.Bias,Stride=2,Cropping="same",DataFormat="SSCB");
-    dlYGen = relu(dlYGen);
+    % dlYGen = relu(dlYGen);
+    dlYGen = leakyrelu(dlYGen, 0.2);
+
     
     % size_Gen_TC2 = size(dlYGen)
 
     dlYGen = dltranspconv(dlYGen,parameters.Conv3.Weights,parameters.Conv3.Bias,Stride=2,Cropping="same",DataFormat="SSCB");
-    dlYGen = relu(dlYGen);
+    % dlYGen = relu(dlYGen);
+    dlYGen = leakyrelu(dlYGen, 0.2);
     
     % size_Gen_TC3 = size(dlYGen)
 
     dlYGen = dltranspconv(dlYGen,parameters.Conv4.Weights,parameters.Conv4.Bias,Stride=2,Cropping="same",DataFormat="SSCB");
-    dlYGen = relu(dlYGen);
+    % dlYGen = relu(dlYGen);
+    dlYGen = leakyrelu(dlYGen, 0.2);
+
     
     % size_Gen_TC4 = size(dlYGen)
 
@@ -357,7 +365,7 @@ function training_data = getTrainingData(angle)
             [x,xinfo] = read(subds);
     
             % Preprocess
-            x = preprocessAudio(single(x),xinfo.SampleRate);
+            x = preprocessAudio(single(x));
     
             % STFT
             S0 = stft(x, seconds(1/xinfo.SampleRate), ...
@@ -435,10 +443,10 @@ function train_model
     % 1 Train with a mini-batch size of 64 for 1000 epochs.
     % maxEpochs = 1000;
     % miniBatchSize = 64;
-    maxEpochs = 200;
+    maxEpochs = 4;
     miniBatchSize = 64;
 
-    saveFrequency = 10;
+    saveFrequency = 2;
 
 
     test_angle = 90;
@@ -447,7 +455,7 @@ function train_model
     % 2 Compute the number of iterations required to consume the data.
 
     % numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize)
-    numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize)
+    numIterationsPerEpoch = floor(size(STrain,4)/miniBatchSize);
 
     % numIterationsPerEpochProper = floor(size(STrain,4)/miniBatchSize)
 
@@ -535,7 +543,8 @@ function train_model
             dlX = dlarray(dlX,"SSCB");
             
             % Generate latent inputs for the generator network.
-            Z = 2 * ( rand(1,1,numLatentInputs,miniBatchSize,"single") - 0.5 ) ;
+            % Z = 2 * ( rand(1,1,numLatentInputs,miniBatchSize,"single") - 0.5 ) ;
+            Z = single(normrnd(0, 1, 1,1,numLatentInputs,miniBatchSize));
             dlZ = dlarray(Z);
     
             % If training on a GPU, then convert data to gpuArray.

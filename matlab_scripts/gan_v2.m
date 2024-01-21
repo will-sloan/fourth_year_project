@@ -443,10 +443,10 @@ function train_model
     % 1 Train with a mini-batch size of 64 for 1000 epochs.
     % maxEpochs = 1000;
     % miniBatchSize = 64;
-    maxEpochs = 400;
+    maxEpochs = 4;
     miniBatchSize = 64;
 
-    saveFrequency = 20;
+    saveFrequency = 2;
 
 
     test_angle = 90;
@@ -475,12 +475,25 @@ function train_model
     executionEnvironment = "auto";
     canUseGPU = true;
 
+    loadData = true;
+
     % 5 Initialize the generator and discriminator weights. The 
     % initializeGeneratorWeights and initializeDiscriminatorWeights 
     % functions return random weights obtained using Glorot uniform 
     % initialization. The functions are included at the end of this example.
     generatorParameters = initializeGeneratorWeights;
     discriminatorParameters = initializeDiscriminatorWeights;
+
+    if loadData
+
+        disp("Loading saved data!");
+        savedData = load('audiogancheckpoint9.mat');
+
+        generatorParameters = savedData.generatorParameters;
+        discriminatorParameters = savedData.discriminatorParameters;
+
+    end
+    
 
     % GAN
 
@@ -495,10 +508,6 @@ function train_model
     samplePeriod = floor(numIterationsPerEpoch/samplesPerEpoch)
     sampleIndex = 1;
     
-    % Will contain 'samplesPerEpoch' CellArrays
-    innerSampleArray = [];
-
-    epochSampleArray = [];
 
     numSamples = floor(maxEpochs/saveFrequency);
 
@@ -625,7 +634,7 @@ function train_model
             if saveCheckpoints
                 
                 saveIter = int32(epoch/saveFrequency);
-                paramSaveFilename = sprintf("audiogancheckpoint%d.mat", saveIter);
+                paramSaveFilename = sprintf("audiogancheckpoint_temp%d.mat", saveIter);
 
                 disp(paramSaveFilename);
 

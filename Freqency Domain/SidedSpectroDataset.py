@@ -31,7 +31,7 @@ class SidedSpectroDataset(Dataset):
         for i in range(self.current_index, min(self.current_index + self.chunk_size, len(self.file_list))):
             # left_angle_1.npy
             f = self.file_list[i]
-            index = f.split('_')[-1].replace('.npy', '')
+            index = f.split('_')[-1].replace('.pt', '')
 
             # There are 3419 mono files, so check to make sure the index is valid
             if int(index) > 3419:
@@ -39,16 +39,18 @@ class SidedSpectroDataset(Dataset):
 
             angle = f.split('_')[1]
             # Create file names for right and mono
-            mono = f'mono_{index}.npy'
+            mono = f'mono_{index}'
 
             # Load spectrograms
             ds = os.path.join(self.spec_dir, f)
             mono_ds = os.path.join(self.mono_dir, mono)
             # print(ds)
             # print(mono_ds)
-            spec = torch.from_numpy(np.load(ds))
+            # spec = torch.from_numpy(np.load(ds))
+            spec = torch.load(ds)
 
-            mono_spec = torch.from_numpy(np.load(mono_ds))
+            # mono_spec = torch.from_numpy(np.load(mono_ds))
+            mono_spec = torch.load(mono_ds)
             label = float(angle)
             # Add to data_map
             chunk_data.append(

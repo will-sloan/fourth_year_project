@@ -87,7 +87,40 @@ if unprocessed:
 #sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, right_wavs_output_dir, chunk_size=1000, max_chunks=1)
 print(mono_wavs_output_dir)
 print(left_wavs_output_dir)
-sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=160)
+sp = SidedSpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=240)
+
+def weights_init(m):
+    if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight.data)
+import gc
+num_channels = 2
+# Train left_model
+left_model = AutoEncoder(input_channels=num_channels, out_channels=num_channels).cuda()
+left_model.apply(weights_init)
+left_model.train()
+
+# Load model from checkpoint
+chkpfile = '/workspace/extension/unet/left_model_checkpoints/model_loopnum_0_4_batch_30.pt'
+chkp = torch.load(chkpfile)
+left_model.load_state_dict(chkp['model_state_dict'])
+left_model.optimizer.load_state_dict(chkp['optimizer_state_dict'])
+# for i in range(8):
+left_model.train_loop(sp, batch_size=8, epochs=8, writer=None, loop_num=0, name='left_model_checkpoints1')
+
+# Clear left_model from memory
+del left_model
+torch.cuda.empty_cache()  # Clear unused memory from GPU
+gc.collect()  # Clear unused memory from CPU
+
+sp = SidedSpectroDataset(mono_wavs_output_dir, right_wavs_output_dir, chunk_size=240)
+
+# Train right_model
+right_model = AutoEncoder(input_channels=num_channels, out_channels=num_channels).cuda()
+right_model.apply(weights_init)
+right_model.train()
+# for i in range(8):
+right_model.train_loop(sp, batch_size=8, epochs=8, writer=None, loop_num=0, name='right_model_checkpoints')
+
 # Gets 1000 samples
 # sp.load_chunk()
 
@@ -110,33 +143,24 @@ sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=160)
 
 # Load the model
 # Real and imaginary parts
-num_channels = 2
+# num_channels = 2
 
-model = AutoEncoder(input_channels=num_channels, out_channels=num_channels).cuda()
-
-# chkp_path = '/workspace/extension/unet/model_checkpoints2/model_loopnum_0_1_batch_30.pt'
-
-# checkpoint = torch.load(chkp_path)
-
-# model.load_state_dict(checkpoint['model_state_dict'])
+# left_model = AutoEncoder(input_channels=num_channels, out_channels=num_channels).cuda()
 
 
-def weights_init(m):
-    if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
-        nn.init.xavier_uniform_(m.weight.data)
 
-model.apply(weights_init)
-model.train()
+# left_model.apply(weights_init)
+# left_model.train()
 
 
-# Train the model
-#model.train_loop(train_dataset, val_dataset, batch_size=32, epochs=100, lr=0.01)
-# Pass writer
-writer = SummaryWriter('runs/mixed_run')
-for i in range(10):
-    model.train_loop(sp, batch_size=8, epochs=2, writer=writer,loop_num=i, name='right')
+# # Train the model
+# #model.train_loop(train_dataset, val_dataset, batch_size=32, epochs=100, lr=0.01)
+# # Pass writer
+# # writer = SummaryWriter('runs/mixed_run')
+# for i in range(10):
+#     left_model.train_loop(sp, batch_size=8, epochs=8, writer=None,loop_num=i, name='right_model_checkpoints')
 # Close writer
-writer.close()
+# writer.close()
 exit()
 output = model(sp[0][0].cuda(), sp[0][1])
 # Convert back to denormal

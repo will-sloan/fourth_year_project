@@ -31,7 +31,7 @@ class SpectroDataset(Dataset):
         for i in range(self.current_index, min(self.current_index + self.chunk_size, len(self.file_list))):
             # left_angle_1.npy
             f = self.file_list[i]
-            index = f.split('_')[-1].replace('.npy', '')
+            index = f.split('_')[-1].replace('.pt', '')
 
             # There are 3419 mono files, so check to make sure the index is valid
             if int(index) > 3419:
@@ -39,21 +39,21 @@ class SpectroDataset(Dataset):
 
             angle = f.split('_')[1]
             # Create file names for right and mono
-            mono = f'mono_{index}.npy'
-            right_dir = self.spec_dir.replace('left', 'right')
+            mono = f'mono_{index}'
+            # right_dir = self.spec_dir.replace('left', 'right')
             # Load spectrograms
             ds = os.path.join(self.spec_dir, f)
             mono_ds = os.path.join(self.mono_dir, mono)
-            right_ds = os.path.join(right_dir, f)
+            # right_ds = os.path.join(right_dir, f)
             # print(ds)
             # print(mono_ds)
-            spec = torch.from_numpy(np.load(ds))
-            right_spec = torch.from_numpy(np.load(right_ds))
-            
-            diffspec = spec - right_spec
-            mixedspec = spec + right_spec
+            spec = torch.load(ds)
+            # right_spec = torch.load(right_ds)
+            mono_spec = torch.load(mono_ds)
+            diffspec = spec - mono_spec
+            mixedspec = spec + mono_spec
 
-            mono_spec = torch.from_numpy(np.load(mono_ds))
+            
             label = float(angle)
             # Add to data_map
             chunk_data.append(
@@ -61,7 +61,8 @@ class SpectroDataset(Dataset):
                     "mono": mono_spec,
                     "label": label,
                     "mixed": mixedspec,
-                    "diff": diffspec
+                    "diff": diffspec,
+                    "filename": f
                 }
             )
         self.current_index += self.chunk_size
@@ -103,7 +104,7 @@ class SpectroDataset(Dataset):
     
     def __getitem__(self, index):
         temp = self.data_map[index]
-        return temp["mono"], temp["label"], temp["target"]
+        return temp["mono"], temp["label"], temp["mixed"], temp["diff"], temp["filename"]
     
     def save_data_map(self, path):
         # Add all instance variables to a dictionary

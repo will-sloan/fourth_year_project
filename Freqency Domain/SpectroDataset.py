@@ -39,7 +39,7 @@ class SpectroDataset(Dataset):
 
             angle = f.split('_')[1]
             # Create file names for right and mono
-            mono = f'mono_{index}'
+            mono = f'mono_{index}.pt'
             # right_dir = self.spec_dir.replace('left', 'right')
             # Load spectrograms
             ds = os.path.join(self.spec_dir, f)

@@ -25,115 +25,115 @@ import torchaudio
 # Save the modified audio to a new file
 # torchaudio.save('/workspace/extension/unet/unchopped2/mono_matched.wav', mono_wav, sample_rate)
 
-mono_wav = '/workspace/extension/unet/unchopped2/mono_matched.wav'
+# mono_wav = '/workspace/extension/unet/unchopped2/mono_matched.wav'
 
-left_wav_0 = '/workspace/extension/unet/unchopped2/left_0.wav'
-left_wav_15 = '/workspace/extension/unet/unchopped2/left_15.wav'
-left_wav_30 = '/workspace/extension/unet/unchopped2/left_30.wav'
-left_wav_45 = '/workspace/extension/unet/unchopped2/left_45.wav'
-left_wav_60 = '/workspace/extension/unet/unchopped2/left_60.wav'
-left_wav_75 = '/workspace/extension/unet/unchopped2/left_75.wav'
-left_wav_90 = '/workspace/extension/unet/unchopped2/left_90.wav'
-left_wav_105 = '/workspace/extension/unet/unchopped2/left_105.wav'
-left_wav_120 = '/workspace/extension/unet/unchopped2/left_120.wav'
-left_wav_135 = '/workspace/extension/unet/unchopped2/left_135.wav'
-left_wav_150 = '/workspace/extension/unet/unchopped2/left_150.wav'
-left_wav_165 = '/workspace/extension/unet/unchopped2/left_165.wav'
-left_wav_180 = '/workspace/extension/unet/unchopped2/left_180.wav'
+# left_wav_0 = '/workspace/extension/unet/unchopped2/left_0.wav'
+# left_wav_15 = '/workspace/extension/unet/unchopped2/left_15.wav'
+# left_wav_30 = '/workspace/extension/unet/unchopped2/left_30.wav'
+# left_wav_45 = '/workspace/extension/unet/unchopped2/left_45.wav'
+# left_wav_60 = '/workspace/extension/unet/unchopped2/left_60.wav'
+# left_wav_75 = '/workspace/extension/unet/unchopped2/left_75.wav'
+# left_wav_90 = '/workspace/extension/unet/unchopped2/left_90.wav'
+# left_wav_105 = '/workspace/extension/unet/unchopped2/left_105.wav'
+# left_wav_120 = '/workspace/extension/unet/unchopped2/left_120.wav'
+# left_wav_135 = '/workspace/extension/unet/unchopped2/left_135.wav'
+# left_wav_150 = '/workspace/extension/unet/unchopped2/left_150.wav'
+# left_wav_165 = '/workspace/extension/unet/unchopped2/left_165.wav'
+# left_wav_180 = '/workspace/extension/unet/unchopped2/left_180.wav'
 
-mono_wav, sample_rate = torchaudio.load(mono_wav)
-
+# mono_wav, sample_rate = torchaudio.load(mono_wav)
+sample_rate = 32000
 # 0h23m54.5s - 4h20m24s
 # Convert into index
 talking_start_index = (30*60) * 32000
 talking_end_index = (4*60*60) * 32000
 print(talking_start_index, talking_end_index)
 # exit()
-print(mono_wav.shape)
-mono_wav = mono_wav[:, talking_start_index:talking_end_index]
-print(mono_wav.shape)
+# print(mono_wav.shape)
+# mono_wav = mono_wav[:, talking_start_index:talking_end_index]
+# print(mono_wav.shape)
 
-left_wav_0, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_0.wav')
-print(left_wav_0.shape)
-left_wav_0 = left_wav_0[:, talking_start_index:talking_end_index]
-print(left_wav_0.shape)
+# left_wav_0, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_0.wav')
+# print(left_wav_0.shape)
+# left_wav_0 = left_wav_0[:, talking_start_index:talking_end_index]
+# print(left_wav_0.shape)
 
-left_wav_15, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_15.wav')
-print(left_wav_15.shape)
-left_wav_15 = left_wav_15[:, talking_start_index:talking_end_index]
-print(left_wav_15.shape)
+# left_wav_15, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_15.wav')
+# print(left_wav_15.shape)
+# left_wav_15 = left_wav_15[:, talking_start_index:talking_end_index]
+# print(left_wav_15.shape)
 
-left_wav_30, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_30.wav')
-print(left_wav_30.shape)
-left_wav_30 = left_wav_30[:, talking_start_index:talking_end_index]
-print(left_wav_30.shape)
+# left_wav_30, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_30.wav')
+# print(left_wav_30.shape)
+# left_wav_30 = left_wav_30[:, talking_start_index:talking_end_index]
+# print(left_wav_30.shape)
 
-left_wav_45, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_45.wav')
-print(left_wav_45.shape)
-left_wav_45 = left_wav_45[:, talking_start_index:talking_end_index]
-print(left_wav_45.shape)
+# left_wav_45, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_45.wav')
+# print(left_wav_45.shape)
+# left_wav_45 = left_wav_45[:, talking_start_index:talking_end_index]
+# print(left_wav_45.shape)
 
-left_wav_60, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_60.wav')
-print(left_wav_60.shape)
-left_wav_60 = left_wav_60[:, talking_start_index:talking_end_index]
-print(left_wav_60.shape)
+# left_wav_60, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_60.wav')
+# print(left_wav_60.shape)
+# left_wav_60 = left_wav_60[:, talking_start_index:talking_end_index]
+# print(left_wav_60.shape)
 
-left_wav_75, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_75.wav')
-print(left_wav_75.shape)
-left_wav_75 = left_wav_75[:, talking_start_index:talking_end_index]
-print(left_wav_75.shape)
+# left_wav_75, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_75.wav')
+# print(left_wav_75.shape)
+# left_wav_75 = left_wav_75[:, talking_start_index:talking_end_index]
+# print(left_wav_75.shape)
 
-left_wav_90, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_90.wav')
-print(left_wav_90.shape)
-left_wav_90 = left_wav_90[:, talking_start_index:talking_end_index]
-print(left_wav_90.shape)
+# left_wav_90, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_90.wav')
+# print(left_wav_90.shape)
+# left_wav_90 = left_wav_90[:, talking_start_index:talking_end_index]
+# print(left_wav_90.shape)
 
-left_wav_105, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_105.wav')
-print(left_wav_105.shape)
-left_wav_105 = left_wav_105[:, talking_start_index:talking_end_index]
-print(left_wav_105.shape)
+# left_wav_105, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_105.wav')
+# print(left_wav_105.shape)
+# left_wav_105 = left_wav_105[:, talking_start_index:talking_end_index]
+# print(left_wav_105.shape)
 
-left_wav_120, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_120.wav')
-print(left_wav_120.shape)
-left_wav_120 = left_wav_120[:, talking_start_index:talking_end_index]
-print(left_wav_120.shape)
+# left_wav_120, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_120.wav')
+# print(left_wav_120.shape)
+# left_wav_120 = left_wav_120[:, talking_start_index:talking_end_index]
+# print(left_wav_120.shape)
 
-left_wav_135, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_135.wav')
-print(left_wav_135.shape)
-left_wav_135 = left_wav_135[:, talking_start_index:talking_end_index]
-print(left_wav_135.shape)
+# left_wav_135, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_135.wav')
+# print(left_wav_135.shape)
+# left_wav_135 = left_wav_135[:, talking_start_index:talking_end_index]
+# print(left_wav_135.shape)
 
-left_wav_150, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_150.wav')
-print(left_wav_150.shape)
-left_wav_150 = left_wav_150[:, talking_start_index:talking_end_index]
-print(left_wav_150.shape)
+# left_wav_150, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_150.wav')
+# print(left_wav_150.shape)
+# left_wav_150 = left_wav_150[:, talking_start_index:talking_end_index]
+# print(left_wav_150.shape)
 
-left_wav_165, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_165.wav')
-print(left_wav_165.shape)
-left_wav_165 = left_wav_165[:, talking_start_index:talking_end_index]
-print(left_wav_165.shape)
+# left_wav_165, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_165.wav')
+# print(left_wav_165.shape)
+# left_wav_165 = left_wav_165[:, talking_start_index:talking_end_index]
+# print(left_wav_165.shape)
 
-left_wav_180, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_180.wav')
-print(left_wav_180.shape)
-left_wav_180 = left_wav_180[:, talking_start_index:talking_end_index]
-print(left_wav_180.shape)
+# left_wav_180, _ = torchaudio.load('/workspace/extension/unet/unchopped2/left_180.wav')
+# print(left_wav_180.shape)
+# left_wav_180 = left_wav_180[:, talking_start_index:talking_end_index]
+# print(left_wav_180.shape)
 
 
-# Save all the files
-torchaudio.save('/workspace/extension/unet/chopped/mono_matched.wav', mono_wav, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_0_matched.wav', left_wav_0, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_15_matched.wav', left_wav_15, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_30_matched.wav', left_wav_30, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_45_matched.wav', left_wav_45, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_60_matched.wav', left_wav_60, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_75_matched.wav', left_wav_75, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_90_matched.wav', left_wav_90, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_105_matched.wav', left_wav_105, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_120_matched.wav', left_wav_120, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_135_matched.wav', left_wav_135, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_150_matched.wav', left_wav_150, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_165_matched.wav', left_wav_165, sample_rate)
-torchaudio.save('/workspace/extension/unet/chopped/left_180_matched.wav', left_wav_180, sample_rate)
+# # Save all the files
+# torchaudio.save('/workspace/extension/unet/chopped/mono_matched.wav', mono_wav, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_0_matched.wav', left_wav_0, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_15_matched.wav', left_wav_15, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_30_matched.wav', left_wav_30, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_45_matched.wav', left_wav_45, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_60_matched.wav', left_wav_60, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_75_matched.wav', left_wav_75, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_90_matched.wav', left_wav_90, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_105_matched.wav', left_wav_105, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_120_matched.wav', left_wav_120, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_135_matched.wav', left_wav_135, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_150_matched.wav', left_wav_150, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_165_matched.wav', left_wav_165, sample_rate)
+# torchaudio.save('/workspace/extension/unet/chopped/left_180_matched.wav', left_wav_180, sample_rate)
 
 # Do the same for the right
 right_wav_0, _ = torchaudio.load('/workspace/extension/unet/unchopped2/right_0.wav')

@@ -25,7 +25,7 @@ class SpectroConverter():
             spec = np.concatenate((real, imag), axis=0)
             spec = torch.from_numpy(spec)
             #np.save(os.path.join(output_dir, file.replace('.wav', '')), D)
-            torch.save(spec, os.path.join(output_dir, file.replace('.wav', '')))
+            torch.save(spec, os.path.join(output_dir, file.replace('.wav', '.pt')))
 
     # def normalize(self, samples, desired_rms = 0.1, eps = 1e-4):
     #     rms = np.maximum(eps, np.sqrt(np.mean(samples**2)))

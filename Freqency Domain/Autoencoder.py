@@ -54,7 +54,7 @@ class AutoEncoder(nn.Module):
         angle_tensor = angle_tensor.expand(-1, -1, x.shape[2], x.shape[3])
         angle_tensor = angle_tensor.cuda()
         x = torch.cat([x, angle_tensor], dim=1)
-        # x = self.bottleneck(x)
+        x = self.bottleneck(x)
         x = self.decoder(x)
         x = self.final_conv(x)
 

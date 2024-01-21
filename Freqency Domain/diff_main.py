@@ -14,13 +14,13 @@ from WavSplitter import WavSplitter
 from SidedSpectroDataset import SidedSpectroDataset
 
 unsplit = False
-unprocessed = True
-run_model = False
+unprocessed = False
+run_model = True
 data_folder = '/workspace/extension/unet'
-long_mono = 'unchopped2/mono.wav'
+long_mono = 'chopped/mono.wav'
 all_angles = [0, 15, 30, 45, 90, 105, 120, 135, 150, 165, 180]
-long_left = 'unchopped2/left_'
-long_right = 'unchopped2/right_'
+long_left = 'chopped/left_'
+long_right = 'chopped/right_'
 mono_target = 'wavs/mono'
 left_target = 'wavs/left'
 right_target = 'wavs/right'
@@ -52,6 +52,7 @@ if unsplit:
     split_length = 5 # seconds
     
     WavSplitter(os.path.join(data_folder, long_mono), mono_wavs, split_length)
+    print("done splitting mono")
     for i in all_angles:
         # Create new filename for the i angle
         temp = long_left + str(i) + '.wav'
@@ -97,7 +98,7 @@ if run_model:
     left_model.apply(weights_init)
     left_model.train()
     # for i in range(8):
-    left_model.train_loop(sp, batch_size=4, epochs=8, writer=None, loop_num=0, name='left_model_checkpoints2')
+    left_model.train_loop(sp, batch_size=4, epochs=8, writer=None, loop_num=0, name='left_model_checkpoints3')
 
     # Clear left_model from memory
     del left_model
@@ -111,5 +112,5 @@ if run_model:
     right_model.apply(weights_init)
     right_model.train()
     # for i in range(8):
-    right_model.train_loop(sp, batch_size=4, epochs=8, writer=None, loop_num=0, name='right_model_checkpoints')
+    right_model.train_loop(sp, batch_size=4, epochs=8, writer=None, loop_num=0, name='right_model_checkpoints3')
 

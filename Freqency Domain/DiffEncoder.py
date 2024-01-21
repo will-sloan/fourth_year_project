@@ -126,7 +126,7 @@ class AutoEncoder(nn.Module):
             # load a fresh 1000 samples from each epoch
             
 
-            accumulation_steps = 4  # Change this to the number of steps you want to accumulate gradients over
+            # accumulation_steps = 4  # Change this to the number of steps you want to accumulate gradients over
 
             self.train()
             train_loss = 0.0

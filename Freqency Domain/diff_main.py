@@ -86,7 +86,7 @@ if unprocessed:
     # print('Right done')
 
 if run_model:
-    sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=240)
+    sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=480)
 
     def weights_init(m):
         if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
@@ -97,8 +97,8 @@ if run_model:
     left_model = AutoEncoder(input_channels=num_channels, out_channels=num_channels).cuda()
     left_model.apply(weights_init)
     left_model.train()
-    # for i in range(8):
-    left_model.train_loop(sp, batch_size=4, epochs=8, writer=None, loop_num=0, name='left_model_checkpoints3')
+    for i in range(8):
+        left_model.train_loop(sp, batch_size=2, epochs=2, writer=None, loop_num=i, name='left_model_checkpoints4')
 
     # Clear left_model from memory
     del left_model
@@ -106,11 +106,11 @@ if run_model:
     gc.collect()  # Clear unused memory from CPU
 
 
-    sp = SpectroDataset(mono_wavs_output_dir, right_wavs_output_dir, chunk_size=240)
+    sp = SpectroDataset(mono_wavs_output_dir, right_wavs_output_dir, chunk_size=480)
     # Train right_model
     right_model = AutoEncoder(input_channels=num_channels, out_channels=num_channels).cuda()
     right_model.apply(weights_init)
     right_model.train()
-    # for i in range(8):
-    right_model.train_loop(sp, batch_size=4, epochs=8, writer=None, loop_num=0, name='right_model_checkpoints3')
+    for i in range(8):
+        right_model.train_loop(sp, batch_size=2, epochs=2, writer=None, loop_num=i, name='right_model_checkpoints4')
 

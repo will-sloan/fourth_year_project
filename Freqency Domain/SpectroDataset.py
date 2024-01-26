@@ -12,6 +12,7 @@ import numpy as np
 import librosa
 import os
 import random
+import gc
 
 class SpectroDataset(Dataset):
 
@@ -70,6 +71,8 @@ class SpectroDataset(Dataset):
     
     # Get one chunk instead of all the chunks
     def load_chunk(self):
+        self.data_map = []
+        gc.collect()
         #print(self.current_index, len(self.file_list))
         if self.current_index >= len(self.file_list):
             print("No more new chunks to load, resetting index")

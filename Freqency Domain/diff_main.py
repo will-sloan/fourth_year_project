@@ -26,9 +26,9 @@ left_target = 'wavs/left'
 right_target = 'wavs/right'
 print("Set words")
 
-mono_freq = 'freq/mono'
-left_freq = 'freq/left'
-right_freq = 'freq/right'
+mono_freq = 'norm_freq/mono'
+left_freq = 'norm_freq/left'
+right_freq = 'norm_freq/right'
 
 mono_wavs = os.path.join(data_folder, mono_target)
 left_wavs = os.path.join(data_folder, left_target)
@@ -86,7 +86,7 @@ if unprocessed:
     # print('Right done')
 
 if run_model:
-    sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=480)
+    sp = SpectroDataset(mono_wavs_output_dir, left_wavs_output_dir, chunk_size=1920)
 
     def weights_init(m):
         if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
@@ -95,10 +95,14 @@ if run_model:
     num_channels = 2
     # Train left_model
     left_model = AutoEncoder(input_channels=num_channels, out_channels=num_channels).cuda()
-    left_model.apply(weights_init)
+    left_model.apply(weights_init) 
+
+    # Load from checkpoint
+    chkppath = '/workspace/extension/unet/left_model_checkpoints5/model_loopnum_5_50_part2.pt'
+    left_model.load_state_dict(torch.load(chkppath)["model_state_dict"])
     left_model.train()
     for i in range(8):
-        left_model.train_loop(sp, batch_size=2, epochs=2, writer=None, loop_num=i, name='left_model_checkpoints4')
+        left_model.train_loop(sp, batch_size=8, epochs=100, writer=None, loop_num=i, name='left_model_checkpoints5', bonus='part3')
 
     # Clear left_model from memory
     del left_model
@@ -106,11 +110,14 @@ if run_model:
     gc.collect()  # Clear unused memory from CPU
 
 
-    sp = SpectroDataset(mono_wavs_output_dir, right_wavs_output_dir, chunk_size=480)
+    sp = SpectroDataset(mono_wavs_output_dir, right_wavs_output_dir, chunk_size=1920)
     # Train right_model
     right_model = AutoEncoder(input_channels=num_channels, out_channels=num_channels).cuda()
     right_model.apply(weights_init)
+    # Load from checkpoint
+    # chkppath = '/workspace/extension/unet/right_model_checkpoints3/model_loopnum_0_7_batch_18.pt'
+    # right_model.load_state_dict(torch.load(chkppath)["model_state_dict"])  
     right_model.train()
     for i in range(8):
-        right_model.train_loop(sp, batch_size=2, epochs=2, writer=None, loop_num=i, name='right_model_checkpoints4')
+        right_model.train_loop(sp, batch_size=8, epochs=100, writer=None, loop_num=i, name='right_model_checkpoints5', bonus='part3')
 

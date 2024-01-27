@@ -1,70 +1,33 @@
+h = readhrtf(0, 0, 'L');
+h = reshape(h, [1, 2, 512]);
 
-% Channel 1
-[data, sample_rate] = audioread("..\Data\SplitDataChunks\90Deg_EARS_1_1SecChunks\90Deg_EARS_1_8500.wav");
-
-% Time difference between samples
-time_delta = 1/sample_rate;
-
-% Make it so stft evaluates frequencies in intervals of 100 Hz
-fft_length = sample_rate/100;
-
-% Window length to give a precision of 10ms (0.01 seconds), 100Hz
-window_length = 0.01/time_delta;
-
-[stft_arr, freqs, times] = stft(data, seconds(time_delta), ...
-    FFTLength=fft_length, Window=hann(window_length,"periodic"), ...
-    OverlapLength=window_length/2,FrequencyRange="onesided");
-%{
-stft(data, seconds(time_delta), ...
-    FFTLength=fft_length, Window=hann(window_length,"periodic"), ...
-    OverlapLength=window_length/2,FrequencyRange="onesided");
-%}
-
-% ===============================================
-
-% Channel 2
-[data2, sample_rate2] = audioread("..\Data\SplitDataChunks\90Deg_EARS_2_1SecChunks\90Deg_EARS_2_8500.wav");
-
-% Time difference between samples
-time_delta2 = 1/sample_rate2;
-
-% Make it so stft evaluates frequencies in intervals of 100 Hz
-fft_length2 = sample_rate2/100;
-
-% Window length to give a precision of 10ms (0.01 seconds), 100Hz
-window_length2 = 0.01/time_delta2;
-
-[stft_arr2, freqs2, times2] = stft(data2, seconds(time_delta2), ...
-    FFTLength=fft_length2, Window=hann(window_length2,"periodic"), ...
-    OverlapLength=window_length2/2,FrequencyRange="onesided");
-
-%{
-stft(data2, seconds(time_delta2), ...
-    FFTLength=fft_length2, Window=hann(window_length2,"periodic"), ...
-    OverlapLength=window_length2/2,FrequencyRange="onesided");
-%}
+pluhL = [readhrtf(0, 0, 'L'); 
+    readhrtf(20, 0, 'L'); ... 
+    readhrtf(40, 0, 'L'); readhrtf(60, 0, 'L')];
 
 
-diff = data - data2
-total_diff = sum(diff)
-[variance, mean_diff] = var(diff)
-std_dev = sqrt(variance)
+pluhR = [readhrtf(0, 0, 'R'); 
+    readhrtf(20, 0, 'R'); ... 
+    readhrtf(40, 0, 'R'); readhrtf(60, 0, 'R')];
+
+pluh = [pluhL(1, :), pluhR(1, :); pluhL(2, :), pluhR(2, :); ...
+    pluhL(3, :), pluhR(3, :); pluhL(4, :), pluhR(4, :)];
+
+% size(pluh)
+pluh = reshape(pluh, [4, 2, 512]);
+
+% size(pluh)
+
+source = [0,0;20,0;40,0;60,0];
+
+des = [30, 0];
+
+size(source)
+
+result = interpolateHRTF(pluh, source, des, Algorithm="vbap");
 
 
-dlZ = dlarray(2 * ( rand(1,1,100,1,"single") - 0.5 ));
+actualL = readhrtf(30, 0, 'L');
+actualR = readhrtf(30, 0, 'R');
 
-%{
-classdef fcont
-    methods
-        function try_this = tryThis(x)
-        
-            try_this = x*2
-        
-        end
-
-    end
-end
-%}
-
-
-
+actual = [actualL(1, :); actualR(1, :)];

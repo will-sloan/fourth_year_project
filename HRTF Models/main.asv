@@ -1,0 +1,38 @@
+filename = 'sofa_hrtfs/RIEC_hrir_subject_001.sofa';
+s = sofaread(filename);
+
+% Get all zero indexed source positions
+elevation = s.SourcePosition(:,2);
+flat_recordings = find(elevation == 0);
+
+% Get all the flat hrirs
+% Now we got our baseline
+
+hrir_desc = s.SourcePosition(flat_recordings,:);
+hrirs = s.Numerator(flat_recordings,:,:);
+
+% Mask them to create a large ass dataset of ones to train on
+firFilter = firFilter
+% Define parameters
+numSamples = size(firFilter, 2);
+numChannels = size(firFilter, 1);
+maskPercentage = 0.2; % Adjust the percentage of masked samples
+
+% Generate a random binary mask
+mask = rand(1, numSamples) > maskPercentage;
+
+% Duplicate the mask for each channel
+mask = repmat(mask, numChannels, 1);
+
+% Apply the mask to the FIR filter
+maskedFIR = firFilter .* mask;
+
+% Display the masked FIR filter
+figure;
+subplot(2, 1, 1);
+plot(firFilter(1, :));
+title('Original FIR Filter - Channel 1');
+
+subplot(2, 1, 2);
+plot(maskedFIR(1, :));
+title('Masked FIR Filter - Channel 1');

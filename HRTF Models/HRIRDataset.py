@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 from pysofaconventions import SOFAFile
 import numpy as np
+import torch
 
 class HRIRDataset(Dataset):
 
@@ -25,10 +26,10 @@ class HRIRDataset(Dataset):
         iii = np.intersect1d(i, ii)[0]
         # Get the baseline and add it to the list
         baseline = data[iii,:,:]
-        self.baseline.append(baseline)
+        self.baseline.append(torch.from_numpy(baseline))
         for index in range(len(i)):
             # Add a tuple (index_of_baseline, hrir, target_angle)
-            self.targets.append((len(self.baseline) - 1, hrirs[index,:,:], angles[index]))
+            self.targets.append((len(self.baseline) - 1, torch.from_numpy(hrirs[index,:,:]), torch.tensor(angles[index])))
 
     
     def __len__(self):

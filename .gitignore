@@ -3,3 +3,6 @@
 *.sofa
 *.dat
 *run*
+*.pth
+!model_98_step_scheded.pth
+!WorkingModelWeights.pth

@@ -16,7 +16,7 @@ num_epochs = 10
 
 # Create the DataLoader
 dataloader = DataLoader(hrir_dataset, batch_size=2, shuffle=True)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else exit())
 model = model.to(device)
 
 # Define the optimizer and loss function

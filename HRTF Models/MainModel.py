@@ -1,47 +1,61 @@
 import torch
 from torch import nn
-
+import time
 class MainModel(nn.Module):
-    def __init__(self, d_model=3, nhead=3, num_layers=8):
+    def __init__(self, d_model=3, nhead=3, num_layers=12):
         super(MainModel, self).__init__()
+        # [seq_length, batch_size, d_model] = [512, n, 3]
         self.transformer = nn.Transformer(d_model, nhead, num_layers)
     
-    def autoregressive_inference(self, input, angle):
-        # Initialize the output sequence with a start-of-sequence token
+    def autoregressive_inference(self, input):
+        # [seq_length, batch_size, d_model]
         output = torch.zeros_like(input)
-        output[:, 0] = input[:, 0]
+        # Set first token to be the same as the input
+        output[0, :] = input[0, :]
+        # print(output.shape, input.shape)
+        with torch.no_grad():
+            for t in range(1, output.size(0)):
+                # Get the predictions for the next token
+                predictions = self.transformer(input, output)
+                
+                # Save the predicted values for the next token
+                output[t, :] = predictions[t, :]
 
-        # Loop over each position in the output sequence
-        for t in range(1, output.size(1)):
-            # Get the predictions for the next token
-            predictions = self.transformer(input, output, angle)
-            
-            # Choose the token with the highest prediction as the next token
-            # This is a simple "greedy" decoding method; other methods like beam search could also be used
-            output[:, t] = predictions[:, t-1].argmax(dim=-1)
+                # print(t, output.shape)
         
         return output
     
-    def forward(self, src, tgt, angle, src_mask=None, tgt_mask=None):
-        if self.training and tgt is not None:
+    def forward(self, src, angle, tgt=None, src_mask=None, tgt_mask=None):
+        if tgt is not None:
             # create a 512 long angle tensor to add as a feature
             angle = angle.view(src.shape[0], 1, 1)
             angle = angle.expand(-1, -1, src.shape[2])
             src = torch.cat((src, angle), dim=1)
+            # [batch_size, 2, 512] --> [batch_size, 3, 512]
             # Do the same for tgt but set it to -1 since that isn't a real angle
             constant_tgt = torch.full_like(angle, -1)
             tgt = torch.cat((tgt, constant_tgt), dim=1)
-            
-            # Replace the first value of tgt with the first value of src
-            # Since when we generate, we won't have a value for tgt
-            tgt = torch.cat([src[:, :1], tgt[:, 1:]], dim=1)
             src = src.permute(2, 0, 1)
             tgt = tgt.permute(2, 0, 1)
+            # [batch_size, d_model, seq_length] --> [seq_length, batch_size, d_model]
+            # Replace the first value of tgt with the first value of src
+            # Since when we generate, we won't have a value for tgt
+            tgt[0,:] = src[0,:]
             
             output = self.transformer(src, tgt, src_mask=src_mask, tgt_mask=tgt_mask)
             # Convert back to [batch_size, d_model, seq_length]
             output = output.permute(1, 2, 0)
         else:
             # No value for tgt so we generate one
-            output = self.autoregressive_inference(src, angle)
+            # print("no valu")
+            angle = angle.view(src.shape[0], 1, 1)
+            angle = angle.expand(-1, -1, src.shape[2])
+            # print(angle.shape, src.shape)
+            src = torch.cat((src, angle), dim=1)
+            # print(src.shape)
+            # [batch_size, d_model, seq_length] --> [seq_length, batch_size, d_model]
+            src = src.permute(2, 0, 1)
+            output = self.autoregressive_inference(src)
+            # Converted back to [batch_size, d_model, seq_length]
+
         return output

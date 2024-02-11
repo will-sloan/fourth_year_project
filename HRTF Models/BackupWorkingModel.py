@@ -1,9 +1,9 @@
 import torch
 from torch import nn
 import time
-class MainModel(nn.Module):
+class BackupWorkingModel(nn.Module):
     def __init__(self, d_model=3, nhead=3, num_layers=12):
-        super(MainModel, self).__init__()
+        super(BackupWorkingModel, self).__init__()
         # [seq_length, batch_size, d_model] = [512, n, 3]
         self.transformer = nn.Transformer(d_model, nhead, num_layers)
     

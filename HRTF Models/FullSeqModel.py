@@ -1,4 +1,4 @@
-# Learns using teacher forcing
+# Predicts the whole sequence
 
 import torch
 from torch import nn
@@ -6,14 +6,22 @@ import time
 import random
 import torch.utils.checkpoint as checkpoint
 
-class SeqModel(nn.Module):
+class FullSeqModel(nn.Module):
     def __init__(self, d_model=3, nhead=3, num_layers=12):
-        super(SeqModel, self).__init__()
+        super(FullSeqModel, self).__init__()
         # [seq_length, batch_size, d_model] = [512, n, 3]
         self.transformer = nn.Transformer(d_model, nhead, num_layers)
+        self.enable_grad()
+    
+    def enable_grad(self):
+        for param in self.transformer.encoder.parameters():
+            param.requires_grad = True
+        
+    def disable_grad(self):
         for param in self.transformer.encoder.parameters():
             param.requires_grad = False
-    
+
+
     def autoregressive_inference(self, input):
         # [seq_length, batch_size, d_model]
         output = torch.zeros_like(input)
@@ -27,31 +35,16 @@ class SeqModel(nn.Module):
 
         return output
     
-    def teacher_force(self, input, tgt, teacher_ratio=0.5, epoch=None, token_limit=None):
-        if token_limit is None:
-            token_limit = input.size(0)
-
-        # teacher_ratio is probability of using tgt instead of the predicted value
-        # The higher the value, the more likely we are to use tgt
-        # Opposite to the other mtehods
-        if epoch is not None:
-            teacher_ratio = min(teacher_ratio - 0.05 * epoch, 0.1)
-
-        # output = torch.zeros_like(input)
-        # output[0, :] = input[0, :]
-
-        # intermediate_outputs = [input[0, :]]
+    def teacher_force(self, input, tgt, teacher_ratio=0.5, epoch=None):
         
         output = torch.zeros_like(input)
         # turn off grad
         output.requires_grad = False
         # Set first token to be the same as the input
         output[0, :] = input[0, :]
-
-        # for t in range(input.size(0)):
-        # limit to 250 tokens
-        for t in range(min(input.size(0), token_limit)):
-            predictions = checkpoint.checkpoint(self.transformer, input, output, use_reentrant=False)
+        for t in range(input.size(0)):
+            # predictions = checkpoint.checkpoint(self.transformer, input, output, use_reentrant=False)
+            predictions = self.transformer(input, output).detach()
 
             random_number = random.random()
             use_teacher_forcing = random_number < teacher_ratio
@@ -63,13 +56,12 @@ class SeqModel(nn.Module):
                 output[t, :] = predictions[t, :]
         # remove first value
         # intermediate_outputs.pop(0)
-        output[250:, :] = tgt[250:, :]
         # output = torch.stack(intermediate_outputs, dim=0)
         output = output.detach().clone()
         output.requires_grad = True
         return output
     
-    def forward(self, src, angle, tgt=None, epoch=None):
+    def forward(self, src, angle, tgt=None, epoch=None, teacher_ratio=0.5):
         # create a 512 long angle tensor to add as a feature
         angle = angle.view(src.shape[0], 1, 1)
         angle = angle.expand(-1, -1, src.shape[2])
@@ -89,7 +81,7 @@ class SeqModel(nn.Module):
             tgt[0,:] = src[0,:]
 
 
-            output = self.teacher_force(input=src, tgt=tgt, teacher_ratio=0.8, epoch=epoch, token_limit=250)
+            output = self.teacher_force(input=src, tgt=tgt, teacher_ratio=teacher_ratio, epoch=epoch)
             
             output = output.permute(1, 2, 0)
         else:

@@ -24,7 +24,7 @@ class ShortSeqHRIRDataset(Dataset):
         hrirs = data[i,:,:]
 
         # Get indexes where elevatio is 0 and azimuth is 0
-        ii = np.where(sourcePositions[:,0] == 0)[0]
+        ii = np.where(sourcePositions[:,0] == 0)[0]  
         # Get overlap between i and ii, this is the baseline
         iii = np.intersect1d(i, ii)[0]
         # Get the baseline and add it to the list

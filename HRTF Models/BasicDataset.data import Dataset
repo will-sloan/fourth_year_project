@@ -5,7 +5,7 @@ import torch
 
 class HRIRDataset(Dataset):
 
-    def __init__(self, baseline_angles=[0]):
+    def __init__(self, baseline_angles=[0,90,180,270]):
         # self.baseline = []
         self.targets = []
         self.baseline_angles = baseline_angles
@@ -44,11 +44,8 @@ class HRIRDataset(Dataset):
         # return self.baseline[baseline_index], hrir, angle
         # baselines, hrir, angle = self.targets[index]
         baselines, hrir, angle = self.targets[index]
-        # b0, b90, b180, b270 = baselines
-        b0 = baselines[0]
+        b0, b90, b180, b270 = baselines
         # Since baselines can be a list of tensors, we need to stack them
         # baselines = torch.cat(baselines, dim=0)
         # return baselines, hrir, angle
-        # return b0, b90, b180, b270, hrir, angle
-        angle0 = torch.tensor(0., dtype=torch.float32)
-        return b0, angle0, hrir, angle
+        return b0, b90, b180, b270, hrir, angle
